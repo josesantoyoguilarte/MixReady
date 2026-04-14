@@ -1,0 +1,59 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# NuGet
+**/packages/*
+*.nupkg
+**/[Pp]ackages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+*.egg
+.venv/
+venv/
+env/
+
+# Audio files (don't commit uploads/processed tracks)
+MixReady/storage/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Rider / JetBrains
+.idea/
+
+# User secrets
+secrets.json
