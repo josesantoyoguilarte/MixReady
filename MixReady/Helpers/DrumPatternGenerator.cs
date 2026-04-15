@@ -55,24 +55,44 @@ public static class DrumPatternGenerator
             {
                 var globalStep = bar * StepsPerBar + step;
                 var timeSeconds = globalStep * secondsPerSixteenth;
-                var startSample = (int)(timeSeconds * sampleRate);
+
+                // --- Micro-timing swing for groove ---
+                // Snare/clap positions (offbeats: "a" and "&" in dembow) are
+                // pushed slightly late (~20ms) to create the laid-back bounce
+                // that defines the dembow feel. Without this, the pattern
+                // sounds robotic and stiff.
+                var swingOffsetSeconds = 0.0;
+                var stepInBar = step % 16;
+                // Positions 3,6,11,14 are the dembow snare hits ("a" and "&")
+                if (stepInBar == 3 || stepInBar == 6 || stepInBar == 11 || stepInBar == 14)
+                    swingOffsetSeconds = 0.020; // 20ms late = laid-back feel
+
+                var startSample = (int)((timeSeconds + swingOffsetSeconds) * sampleRate);
 
                 var hits = pattern[step];
 
+                // --- Velocity variation for human feel ---
+                // Beat 1 kick (pos 0) = full power, Beat 3 kick (pos 8) = 88%
+                // Hats get slight random variation per hit
+                var kickVelocity = (stepInBar == 0) ? 1.0f : 0.88f;
+                var hatVelocity = 1.0f + (float)((globalStep * 7 % 13) - 6) * 0.01f; // +/- 6%
+
+                // --- Dynamic hierarchy ---
+                // Kick DOMINATES, clap sits behind, hats are subtle texture
                 if (hits.HasFlag(DrumHit.Kick))
-                    WriteKick(output, startSample, sampleRate, channels, intensity, bassFreq);
+                    WriteKick(output, startSample, sampleRate, channels, intensity * kickVelocity, bassFreq);
 
                 if (hits.HasFlag(DrumHit.Bass808))
-                    WriteBass808(output, startSample, sampleRate, channels, bpm, intensity * 0.8f, bassFreq);
+                    WriteBass808(output, startSample, sampleRate, channels, bpm, intensity * 0.85f * kickVelocity, bassFreq);
 
                 if (hits.HasFlag(DrumHit.Snare))
-                    WriteSnare(output, startSample, sampleRate, channels, intensity * 0.75f);
+                    WriteSnare(output, startSample, sampleRate, channels, intensity * 0.6f);
 
                 if (hits.HasFlag(DrumHit.ClosedHat))
-                    WriteHiHat(output, startSample, sampleRate, channels, intensity * 0.2f);
+                    WriteHiHat(output, startSample, sampleRate, channels, intensity * 0.18f * hatVelocity);
 
                 if (hits.HasFlag(DrumHit.OpenHat))
-                    WriteOpenHat(output, startSample, sampleRate, channels, intensity * 0.25f);
+                    WriteOpenHat(output, startSample, sampleRate, channels, intensity * 0.12f);
 
                 if (hits.HasFlag(DrumHit.Rim))
                     WriteRimshot(output, startSample, sampleRate, channels, intensity * 0.4f);
@@ -81,7 +101,7 @@ public static class DrumPatternGenerator
                     WritePerc(output, startSample, sampleRate, channels, intensity * 0.3f);
 
                 if (hits.HasFlag(DrumHit.AccentSnare))
-                    WriteAccentSnare(output, startSample, sampleRate, channels, intensity * 0.9f);
+                    WriteAccentSnare(output, startSample, sampleRate, channels, intensity * 0.5f);
             }
         }
 
@@ -124,25 +144,44 @@ public static class DrumPatternGenerator
     private static DrumHit[] GetPattern(string genre) => genre.Trim() switch
     {
         // -- Reggaeton / Dembow -------------------------------------------
-        //  Kick on every beat (0,4,8,12), snare dembow bounce, 808 follows kick
+        // Authentic dembow: kick on beats 1 and 3 ONLY.
+        // Snare/clap on the offbeats: pos 3 (a of 1), 6 (& of 2),
+        // 11 (a of 3), 14 (& of 4). These 4 claps ARE the dembow.
+        // Hi-hats on every 8th note for the ride.
+        // 808 follows the kick (beats 1 and 3).
+        //
+        //  Pos:  0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15
+        //  Beat: 1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+        //  Kick: X  .  .  .  .  .  .  .  X  .  .  .  .  .  .  .
+        //  Clap: .  .  .  X  .  .  X  .  .  .  .  X  .  .  X  .
+        //  Hat:  X  .  X  .  X  .  X  .  X  .  X  .  X  .  X  .
+        //  808:  X  .  .  .  .  .  .  .  X  .  .  .  .  .  .  .
         "Reggaeton" or "Dembow" => new DrumHit[16]
         {
-        //  1         e    &      a    2      e    &    a    3         e    &      a    4      e    &      a
-            K|H|B,    _,   A|H,   S,   K|B,   H,   S,   _,  K|H|B,    _,   A|H,   _,  K|B,   S|H, _,     S|H,
+        //  1       e     &     a     2     e     &     a     3       e     &     a     4     e     &     a
+            K|H|B,  _,    H,    S,    H,    _,    S,    _,    K|H|B,  _,    H,    S,    H,    _,    S,    _,
         },
 
         // -- Reparto (clean phase, no 808) --------------------------------
-        // Broken dembow -- irregular, aggressive. NO bass in clean phase
-        // so DJs get a stable rhythmic bed to mix into.
+        // Universal Reparto Pattern: controlled, not chaotic.
         //
-        //  Kick:    X . . .  . . X .  X . . .  . X . .   (broken, NOT every beat)
-        //  Snare:   . . . X  . . . .  . . . X  . . . X
-        //  AccSnr:  . . X .  . X . .  . . X .  . . X .   (busier ghost hits)
-        //  HiHat:   X . X .  X . . X  X . X .  X . . X
+        // Key features:
+        //   - Strong kick anchors (not every beat, not random)
+        //   - Double clap accent at beat 3 (the signature)
+        //   - Off-beat clap hits for groove
+        //   - Consistent energy — loops cleanly
+        //   - NOT pure dembow (too clean) and NOT chaotic (too messy)
+        //
+        //  Pos:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+        //  Beat: 1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+        //  Kick: X  .  .  .  .  X  .  .  .  .  .  X  .  .  .  .
+        //  Clap: .  .  .  X  .  .  .  .  X  X  .  .  .  .  X  .
+        //  Hat:  X  .  X  .  X  .  X  .  X  .  X  .  X  .  X  .
+        //                              ^^ double clap = reparto signature
         "Reparto" => new DrumHit[16]
         {
-        //  1       e     &      a     2      e     &      a     3       e     &      a     4      e     &      a
-            K|H,    _,    A|H,   S,    H,     A,    K,     H,    K|H,    _,    A|H,   S,    H,     K,    A,     S|H,
+        //  1       e     &     a     2     e     &     a     3     e     &     a     4     e     &     a
+            K|H,    _,    H,    S,    H,    K,    H,    _,    S|H,  S,    H,    K,    H,    _,    S,    _,
         },
 
         // -- House / Disco/Funk -------------------------------------------
@@ -230,13 +269,13 @@ public static class DrumPatternGenerator
     };
 
     /// <summary>
-    /// Reparto bass phase (bars 9-16): same broken dembow but WITH 808 bass
-    /// on the kick hits. This builds energy heading into the actual track.
+    /// Reparto bass phase (bars 9-16): same controlled pattern but WITH 808 bass
+    /// on the kick anchors. Builds energy heading into the track.
     /// </summary>
     private static DrumHit[] GetRepartoBassPattern() => new DrumHit[16]
     {
-    //  1         e     &      a     2      e     &      a     3         e     &      a     4      e     &      a
-        K|H|B,    _,    A|H,   S,    H,     A,    K|B,   H,    K|H|B,    _,    A|H,   S,    H,     K|B,  A,     S|H,
+    //  1         e     &     a     2       e     &     a     3     e     &       a     4     e     &     a
+        K|H|B,    _,    H,    S,    H,      K|B,  H,    _,    S|H,  S,    H,      K|B,  H,    _,    S,    _,
     };
 
     // -----------------------------------------------------------------
@@ -244,15 +283,34 @@ public static class DrumPatternGenerator
     // -----------------------------------------------------------------
 
     /// <summary>
-    /// 808-style kick: sine sweep from ~3.5x the bass note down to the root.
-    /// The sweep lands on the track's detected key so the kick is in tune.
-    /// Includes an initial click transient for punch.
+    /// Reggaeton 808 kick: body-dominant, sub-heavy.
+    ///
+    ///   The sound is 95% a low sine wave at 60-80 Hz with a soft pitch bend
+    ///   at the very start (100 Hz -> bassFreq in ~10ms) for a subtle attack.
+    ///   NO high-frequency click/punch layer.
+    ///   NO transient spike.
+    ///
+    ///   Think: BUM (not click, not tick, not chik)
+    ///
+    ///   - Soft attack: sine starts smoothly, no impulse
+    ///   - Strong body: sustained 60-80 Hz for ~150ms
+    ///   - Short tail: dies cleanly, doesn't ring into next beat
+    ///   - Key-tuned: sine frequency = track's detected bass note
     /// </summary>
     private static void WriteKick(float[] output, int startSample, int sampleRate, int channels, float intensity, double bassFreq)
     {
-        var durationSamples = (int)(0.12 * sampleRate);
+        var durationSamples = (int)(0.15 * sampleRate);
         var phase = 0.0;
-        var startFreq = bassFreq * 3.5;
+
+        // Use octave 2 for the kick body so it's audible on all speakers.
+        // Octave 1 (32-62 Hz) requires a subwoofer. Octave 2 (65-124 Hz)
+        // is where reggaeton kicks actually live in real productions.
+        var kickFreq = bassFreq * 2.0; // octave 2: 65-124 Hz
+
+        // Pitch bend: start at kickFreq * 2.5 (~200 Hz) for the "buh" attack,
+        // settle to kickFreq in 15ms. This gives audible punch + body.
+        var bendStart = kickFreq * 2.5;
+        var bendSamples = (int)(0.015 * sampleRate);
 
         for (int i = 0; i < durationSamples; i++)
         {
@@ -260,39 +318,74 @@ public static class DrumPatternGenerator
             if (idx >= output.Length - (channels - 1)) break;
 
             var t = (double)i / durationSamples;
-            var freq = startFreq * Math.Pow(bassFreq / startFreq, t);
+
+            double freq;
+            if (i < bendSamples)
+            {
+                var bendT = (double)i / bendSamples;
+                // Exponential settle for punchier attack
+                freq = bendStart * Math.Pow(kickFreq / bendStart, bendT);
+            }
+            else
+            {
+                freq = kickFreq;
+            }
+
             phase += 2.0 * Math.PI * freq / sampleRate;
 
-            var envelope = Math.Exp(-4.5 * t);
-            var click = i < (int)(0.003 * sampleRate)
-                ? (1.0 - (double)i / (0.003 * sampleRate)) * 0.3 : 0.0;
+            // Envelope: 1ms fade-in, strong body, smooth decay
+            var attackSamples = (int)(0.001 * sampleRate);
+            double envelope;
+            if (i < attackSamples)
+            {
+                envelope = (double)i / attackSamples;
+            }
+            else
+            {
+                var decayT = (double)(i - attackSamples) / (durationSamples - attackSamples);
+                envelope = Math.Exp(-3.0 * decayT);
+            }
 
-            var sample = (float)((Math.Sin(phase) * envelope + click) * intensity);
+            // Higher amplitude — kick must dominate the mix
+            var sample = (float)(Math.Sin(phase) * envelope * intensity * 1.3);
+            sample = Math.Clamp(sample, -1.0f, 1.0f);
             for (int ch = 0; ch < channels; ch++)
                 output[idx + ch] += sample;
         }
     }
 
     /// <summary>
-    /// Snare/clap: noise burst (snap) + 200 Hz sine body (thump).
+    /// Electronic clap for dembow: controlled brightness.
+    /// Layered noise bursts but NOT harsh — should sit behind the kick, not dominate.
     /// </summary>
     private static void WriteSnare(float[] output, int startSample, int sampleRate, int channels, float intensity)
     {
-        var durationSamples = (int)(0.10 * sampleRate);
+        var durationSamples = (int)(0.06 * sampleRate); // 60ms — shorter, snappier
         var rng = new Random(startSample);
 
-        for (int i = 0; i < durationSamples; i++)
+        // Two micro-bursts for clap texture (not three — less harsh)
+        var microDelays = new[] { 0, (int)(0.012 * sampleRate) };
+
+        foreach (var delay in microDelays)
         {
-            var idx = (startSample + i) * channels;
-            if (idx >= output.Length - (channels - 1)) break;
+            var layerRng = new Random(startSample + delay * 31);
+            for (int i = 0; i < durationSamples; i++)
+            {
+                var idx = (startSample + delay + i) * channels;
+                if (idx >= output.Length - (channels - 1)) break;
 
-            var t = (double)i / durationSamples;
-            var noise = (float)(rng.NextDouble() * 2.0 - 1.0) * (float)Math.Exp(-8.0 * t);
-            var body = (float)(Math.Sin(2.0 * Math.PI * 200.0 * i / sampleRate) * Math.Exp(-12.0 * t));
+                var t = (double)i / durationSamples;
 
-            var sample = (noise * 0.6f + body * 0.4f) * intensity;
-            for (int ch = 0; ch < channels; ch++)
-                output[idx + ch] += sample;
+                var noise = (float)(layerRng.NextDouble() * 2.0 - 1.0);
+
+                // Moderate decay — not too harsh, not too soft
+                var envelope = (float)Math.Exp(-12.0 * t);
+
+                // NO high-frequency click transient — that was adding cricket sound
+                var sample = noise * envelope * intensity * 0.25f;
+                for (int ch = 0; ch < channels; ch++)
+                    output[idx + ch] += sample;
+            }
         }
     }
 
@@ -380,13 +473,25 @@ public static class DrumPatternGenerator
     }
 
     /// <summary>
-    /// 808 bass: sustained sub-bass sine at the track's root note.
-    /// Tuned to the detected key so it harmonizes with the original song's bass.
+    /// 808 bass with sidechain ducking:
+    ///
+    ///   - Sustained sub-bass sine at the track's root note
+    ///   - First ~50ms is DUCKED (silent) so the kick hits unobstructed
+    ///   - Then swells in over ~30ms for a smooth pump effect
+    ///   - Tighter envelope than before — doesn't ring forever
+    ///
+    /// Without sidechain, the 808 and kick collide and the kick loses impact.
+    /// This is the #1 reason reggaeton intros sound soft.
     /// </summary>
     private static void WriteBass808(float[] output, int startSample, int sampleRate, int channels, double bpm, float intensity, double bassFreq)
     {
+        // Duration = one beat, but tighter decay
         var durationSamples = (int)(60.0 / bpm * sampleRate);
         var phase = 0.0;
+
+        // Sidechain: duck for 50ms, swell in over next 30ms
+        var duckSamples = (int)(0.050 * sampleRate);
+        var swellSamples = (int)(0.030 * sampleRate);
 
         for (int i = 0; i < durationSamples; i++)
         {
@@ -395,9 +500,20 @@ public static class DrumPatternGenerator
 
             var t = (double)i / durationSamples;
             phase += 2.0 * Math.PI * bassFreq / sampleRate;
-            var envelope = Math.Exp(-3.0 * t);
 
-            var sample = (float)(Math.Sin(phase) * envelope * intensity);
+            // Tighter decay: -4.0 instead of -3.0
+            var envelope = Math.Exp(-4.0 * t);
+
+            // Sidechain ducking: silence during kick transient, then swell
+            double sidechain;
+            if (i < duckSamples)
+                sidechain = 0.0; // completely silent while kick attacks
+            else if (i < duckSamples + swellSamples)
+                sidechain = (double)(i - duckSamples) / swellSamples; // linear swell 0->1
+            else
+                sidechain = 1.0;
+
+            var sample = (float)(Math.Sin(phase) * envelope * sidechain * intensity);
             for (int ch = 0; ch < channels; ch++)
                 output[idx + ch] += sample;
         }

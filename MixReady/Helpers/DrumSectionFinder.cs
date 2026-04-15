@@ -27,7 +27,8 @@ public static class DrumSectionFinder
     {
         var beatsPerBar = 4;
         var secondsPerBar = (60.0 / bpm) * beatsPerBar;
-        var samplesPerBar = (int)(secondsPerBar * sampleRate) * channels;
+        // Use Round instead of truncation to minimize per-bar drift
+        var samplesPerBar = (int)Math.Round(secondsPerBar * sampleRate) * channels;
         var extractLength = samplesPerBar * barsToExtract;
 
         if (samples.Length <= extractLength)

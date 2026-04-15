@@ -15,15 +15,27 @@ public static class IntroGenerator
 {
     /// <summary>
     /// Generate a beat-driven DJ intro.
+    /// 
+    /// Two modes:
+    ///   useGrooveExtraction=true  (default): Extract the track's own drum groove,
+    ///     isolate it, reinforce kick/clap, loop it, add riser. Result sounds like
+    ///     the same track — same swing, same sound design, pro DJ edit quality.
+    ///   
+    ///   useGrooveExtraction=false: Synthesize drums from scratch using the
+    ///     genre-specific pattern engine. Generic but works for any track.
     /// </summary>
     public static (double bpm, string genre, string key) Generate(
         string inputPath,
         string outputPath,
         int introBars = 8,
         int crossfadeBars = 2,
-        string? genreOverride = null)
+        string? genreOverride = null,
+        bool useGrooveExtraction = true,
+        int extractBars = 8,
+        bool loop = false,
+        bool introOnly = false)
     {
-        // Step 1: Analyze the track (Python primary, C# fallback)
+        // Step 1: Analyze the track
         var analysis = AnalyzeTrack(inputPath, genreOverride);
 
         var bpm = analysis.Bpm;
@@ -41,36 +53,68 @@ public static class IntroGenerator
         var targetRms = MeasurePeakRms(originalSamples, format.SampleRate, format.Channels);
         var originalBassRms = MeasureBassRms(originalSamples, format.SampleRate, format.Channels);
 
-        // Step 4: Synthesize genre-specific drum pattern at the detected BPM,
-        // tuned to the track's root note so kick & 808 harmonize with the song.
-        // Reparto gets 16 bars (8 clean + 8 with bass).
-        var actualIntroBars = genre.Equals("Reparto", StringComparison.OrdinalIgnoreCase)
-            ? Math.Max(introBars, 16)
-            : introBars;
+        // Step 4: Build the intro
+        // If loop=true, the extracted section is repeated to double its length.
+        // If loop=false, just use the extracted bars directly.
+        var actualIntroBars = loop ? extractBars * 2 : extractBars;
 
-        var drumIntro = DrumPatternGenerator.Generate(
-            bpm, actualIntroBars, format.SampleRate, format.Channels, genre, bassFreq);
+        float[] drumIntro;
 
-        // Step 5: Normalize the drum intro to match the original track
+        // Always try groove extraction first — use the track's own audio.
+        // This gives the best result because it's the actual song's groove.
+        // Only fall back to synth if extraction produces silence.
+        if (useGrooveExtraction)
+        {
+            drumIntro = GrooveExtractor.BuildIntroFromGroove(
+                inputPath,
+                originalSamples, format.SampleRate, format.Channels,
+                bpm, bassFreq, actualIntroBars, extractBars, loop);
+
+            // Sanity check: if extraction is near-silent, fall back to synth
+            var introRms = DrumIsolator.CalculateRms(drumIntro);
+            if (introRms < targetRms * 0.05f)
+            {
+                drumIntro = DrumPatternGenerator.Generate(
+                    bpm, actualIntroBars, format.SampleRate, format.Channels, genre, bassFreq);
+            }
+        }
+        else
+        {
+            drumIntro = DrumPatternGenerator.Generate(
+                bpm, actualIntroBars, format.SampleRate, format.Channels, genre, bassFreq);
+        }
+
+        // Step 5: Normalize to match the original track
         NormalizeToTarget(drumIntro, targetRms);
         MatchBassLevel(drumIntro, format.SampleRate, format.Channels, originalBassRms);
 
-        // Step 6: Beat-aligned crossfade at the recommended position
-        var secondsPerBar = (60.0 / bpm) * 4;
-        var crossfadeSeconds = secondsPerBar * crossfadeBars;
-        var crossfadeStartSample = (int)(crossfadeStartSeconds * format.SampleRate) * format.Channels;
+        // Step 6: Write output
+        float[] finalOutput;
 
-        var combined = CombineWithCrossfadeAtPosition(
-            drumIntro,
-            originalSamples,
-            format.SampleRate,
-            format.Channels,
-            crossfadeSeconds,
-            crossfadeStartSample);
+        if (introOnly)
+        {
+            // Just the intro (extracted section, looped if requested)
+            finalOutput = drumIntro;
+        }
+        else
+        {
+            // Intro + full song with beat-aligned crossfade
+            var secondsPerBar = (60.0 / bpm) * 4;
+            var crossfadeSeconds = secondsPerBar * crossfadeBars;
+            var crossfadeStartSample = (int)(crossfadeStartSeconds * format.SampleRate) * format.Channels;
+
+            finalOutput = CombineWithCrossfadeAtPosition(
+                drumIntro,
+                originalSamples,
+                format.SampleRate,
+                format.Channels,
+                crossfadeSeconds,
+                crossfadeStartSample);
+        }
 
         // Step 7: Write output
         using var writer = new WaveFileWriter(outputPath, format);
-        writer.WriteSamples(combined, 0, combined.Length);
+        writer.WriteSamples(finalOutput, 0, finalOutput.Length);
 
         return (bpm, genre, keyName);
     }

@@ -108,6 +108,83 @@ public static class PythonAnalyzer
     }
 
     /// <summary>
+    /// Result of demucs stem separation.
+    /// </summary>
+    public record SeparationResult
+    {
+        [JsonPropertyName("drums")]
+        public string? DrumsPath { get; init; }
+
+        [JsonPropertyName("bass")]
+        public string? BassPath { get; init; }
+
+        [JsonPropertyName("vocals")]
+        public string? VocalsPath { get; init; }
+
+        [JsonPropertyName("other")]
+        public string? OtherPath { get; init; }
+
+        [JsonPropertyName("error")]
+        public string? Error { get; init; }
+    }
+
+    /// <summary>
+    /// Separate a track into stems using demucs (AI source separation).
+    /// Returns paths to drums.wav, bass.wav, vocals.wav, other.wav.
+    /// </summary>
+    public static async Task<SeparationResult> SeparateAsync(string audioFilePath, string outputDir)
+    {
+        EnsurePythonAvailable();
+
+        var separateScript = ResolveSeparateScriptPath();
+        var args = $"\"{separateScript}\" \"{audioFilePath}\" \"{outputDir}\"";
+
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = FindPython(),
+                Arguments = args,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+
+        var stdout = await process.StandardOutput.ReadToEndAsync();
+        var stderr = await process.StandardError.ReadToEndAsync();
+
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            return new SeparationResult { Error = $"Demucs failed: {stderr}" };
+        }
+
+        var result = JsonSerializer.Deserialize<SeparationResult>(stdout);
+        return result ?? new SeparationResult { Error = "Invalid JSON from separator" };
+    }
+
+    /// <summary>
+    /// Check if demucs stem separation is available.
+    /// </summary>
+    public static bool IsSeparationAvailable()
+    {
+        try
+        {
+            FindPython();
+            return File.Exists(ResolveSeparateScriptPath());
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Check if Python analysis is available (Python installed + script exists).
     /// </summary>
     public static bool IsAvailable()
@@ -143,34 +220,96 @@ public static class PythonAnalyzer
             "Python analysis script not found. Expected at: scripts/analyze.py");
     }
 
+    private static string ResolveSeparateScriptPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(ScriptDir, "separate.py"),
+            Path.Combine(AppContext.BaseDirectory, "scripts", "separate.py"),
+            Path.Combine(Directory.GetCurrentDirectory(), "scripts", "separate.py"),
+        };
+
+        foreach (var path in candidates)
+        {
+            if (File.Exists(path))
+                return path;
+        }
+
+        throw new FileNotFoundException(
+            "Stem separation script not found. Expected at: scripts/separate.py");
+    }
+
+    private static string? _cachedPythonPath;
+
     private static string FindPython()
     {
-        // Try python3 first (Linux/Mac), then python (Windows)
+        if (_cachedPythonPath != null)
+            return _cachedPythonPath;
+
+        // 1. Check known user-install locations FIRST
+        //    This avoids the Windows Store python.exe alias which hangs or fails.
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrEmpty(localAppData))
+        {
+            foreach (var ver in new[] { "Python313", "Python312", "Python311", "Python310", "Python39" })
+            {
+                var path = Path.Combine(localAppData, "Programs", ver, "python.exe");
+                if (File.Exists(path) && TryRunPython(path))
+                {
+                    _cachedPythonPath = path;
+                    return path;
+                }
+            }
+        }
+
+        // 2. Check system-wide installs
+        foreach (var root in new[] { @"C:\Python313", @"C:\Python312", @"C:\Python311", @"C:\Python310", @"C:\Python39" })
+        {
+            var path = Path.Combine(root, "python.exe");
+            if (File.Exists(path) && TryRunPython(path))
+            {
+                _cachedPythonPath = path;
+                return path;
+            }
+        }
+
+        // 3. Try PATH commands last
         foreach (var cmd in new[] { "python3", "python" })
         {
-            try
+            if (TryRunPython(cmd))
             {
-                var p = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = cmd,
-                        Arguments = "--version",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-                p.Start();
-                p.WaitForExit(3000);
-                if (p.ExitCode == 0) return cmd;
+                _cachedPythonPath = cmd;
+                return cmd;
             }
-            catch { }
         }
 
         throw new InvalidOperationException(
             "Python not found. Install Python 3.9+ and run: pip install -r scripts/requirements.txt");
+    }
+
+    private static bool TryRunPython(string pythonCmd)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = pythonCmd,
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            var p = Process.Start(psi);
+            if (p == null) return false;
+            p.WaitForExit(5000);
+            if (!p.HasExited) { try { p.Kill(); } catch { } return false; }
+            return p.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void EnsurePythonAvailable()

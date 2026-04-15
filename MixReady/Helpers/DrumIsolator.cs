@@ -15,48 +15,58 @@ namespace MixReady.Helpers;
 public static class DrumIsolator
 {
     /// <summary>
-    /// Isolate drum frequencies from the given samples.
-    /// The mid band (where vocals/melody live) is completely removed.
-    /// The output is gain-matched to the original section's RMS loudness.
+    /// Remove vocals from audio while preserving drums and instruments.
+    /// 
+    /// Strategy: notch out the vocal frequency range using STEEP filters.
+    ///   - Low-pass at 250 Hz (4th order = -24 dB/oct) ? keeps kick, sub, bass
+    ///   - High-pass at 4000 Hz (4th order = -24 dB/oct) ? keeps claps, hats, transients
+    ///   - The 250-4000 Hz gap kills vocals, melody, and most synth pads
+    ///
+    /// 4th order = two cascaded 2nd-order biquads per band.
+    /// This gives -48 dB at one octave from cutoff vs. only -12 dB with single biquad.
+    ///
+    /// The gain-match step restores loudness so the output isn't quiet.
     /// </summary>
     public static float[] Isolate(float[] samples, int sampleRate, int channels)
     {
-        // Measure original RMS before any processing
         var originalRms = CalculateRms(samples);
 
         var output = new float[samples.Length];
-
-        // Process each channel independently
         var samplesPerChannel = samples.Length / channels;
 
         for (int ch = 0; ch < channels; ch++)
         {
-            // Extract single channel
             var channelData = new float[samplesPerChannel];
             for (int i = 0; i < samplesPerChannel; i++)
                 channelData[i] = samples[i * channels + ch];
 
-            // Keep only lows (kicks) and highs (hats) — zero mids (vocals/melody)
-            var lowBand = ApplyBiquadLowPass(channelData, sampleRate, 150.0);
-            var highBand = ApplyBiquadHighPass(channelData, sampleRate, 10000.0);
+            // 4th-order low-pass at 250 Hz (two cascaded 2nd-order passes)
+            // This kills everything above 250 Hz with a steep slope
+            var low = ApplyBiquadLowPass(channelData, sampleRate, 250.0);
+            low = ApplyBiquadLowPass(low, sampleRate, 250.0);
+
+            // 4th-order high-pass at 4000 Hz (two cascaded 2nd-order passes)
+            // This kills everything below 4000 Hz with a steep slope
+            var high = ApplyBiquadHighPass(channelData, sampleRate, 4000.0);
+            high = ApplyBiquadHighPass(high, sampleRate, 4000.0);
 
             for (int i = 0; i < samplesPerChannel; i++)
             {
-                output[i * channels + ch] = lowBand[i] + highBand[i];
+                output[i * channels + ch] = low[i] + high[i];
             }
         }
 
-        // Fade in first ~10ms to suppress biquad filter startup transient
+        // Fade in first 10ms to suppress filter startup transient
         var fadeLen = Math.Min((int)(0.01 * sampleRate) * channels, output.Length);
         for (int i = 0; i < fadeLen; i++)
             output[i] *= (float)i / fadeLen;
 
-        // Gain-match: bring isolated drums up to the same RMS as the original section
+        // Gain-match to original loudness
         var isolatedRms = CalculateRms(output);
         if (isolatedRms > 1e-8f)
         {
             var gain = originalRms / isolatedRms;
-            gain = Math.Min(gain, 6.0f);
+            gain = Math.Min(gain, 12.0f); // allow more gain since we cut a wide band
             for (int i = 0; i < output.Length; i++)
             {
                 output[i] *= gain;

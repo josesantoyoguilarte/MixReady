@@ -1,0 +1,146 @@
+"""
+MixReady Stem Separator - uses Demucs AI for vocal removal.
+
+Loads audio via soundfile/librosa (NOT torchaudio) to avoid
+torchcodec/FFmpeg dependency issues on Windows.
+
+Usage:
+    python separate.py "<audio_file_path>" "<output_dir>"
+
+Output:
+    JSON to stdout with paths to each stem.
+"""
+
+import sys
+import os
+import json
+import warnings
+import argparse
+
+warnings.filterwarnings("ignore")
+
+
+def check_demucs_available():
+    try:
+        import demucs
+        return True
+    except ImportError:
+        return False
+
+
+def load_audio(file_path, target_sr=44100, channels=2):
+    """Load audio using librosa (works everywhere, no FFmpeg needed)."""
+    import numpy as np
+    import torch
+
+    try:
+        import librosa
+        # Load as mono first, then we'll handle channels
+        y, sr = librosa.load(file_path, sr=target_sr, mono=False)
+
+        if y.ndim == 1:
+            # Mono -> duplicate to stereo
+            y = np.stack([y, y])
+        elif y.shape[0] > channels:
+            y = y[:channels]
+        elif y.shape[0] < channels:
+            # Pad with copies of first channel
+            while y.shape[0] < channels:
+                y = np.concatenate([y, y[:1]], axis=0)
+
+        # Convert to torch tensor: shape (channels, samples)
+        wav = torch.from_numpy(y).float()
+        return wav, sr
+
+    except Exception:
+        # Last resort: soundfile
+        import soundfile as sf
+        data, sr = sf.read(file_path, dtype='float32', always_2d=True)
+        # data is (samples, channels)
+        import torch
+        wav = torch.from_numpy(data.T).float()  # -> (channels, samples)
+
+        if wav.shape[0] > channels:
+            wav = wav[:channels]
+        elif wav.shape[0] < channels:
+            wav = wav.repeat(channels, 1)[:channels]
+
+        if sr != target_sr:
+            # Simple resample using librosa
+            import librosa
+            resampled = []
+            for ch in range(wav.shape[0]):
+                resampled.append(librosa.resample(wav[ch].numpy(), orig_sr=sr, target_sr=target_sr))
+            import numpy as np
+            wav = torch.from_numpy(np.stack(resampled)).float()
+            sr = target_sr
+
+        return wav, sr
+
+
+def save_wav(tensor, path, sample_rate):
+    """Save a torch tensor as WAV using soundfile."""
+    import soundfile as sf
+    import numpy as np
+
+    # tensor shape: (channels, samples)
+    data = tensor.cpu().numpy()
+    if data.ndim == 1:
+        data = data[np.newaxis, :]
+    # soundfile expects (samples, channels)
+    sf.write(path, data.T, sample_rate, subtype='FLOAT')
+
+
+def separate(file_path, output_dir):
+    """Separate a track into stems using demucs."""
+    import torch
+    from demucs.pretrained import get_model
+    from demucs.apply import apply_model
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    model = get_model("htdemucs")
+    model.eval()
+
+    # Load audio using our own loader (bypasses torchaudio)
+    wav, sr = load_audio(file_path, target_sr=model.samplerate, channels=model.audio_channels)
+
+    # Normalize
+    ref = wav.mean(0)
+    wav = (wav - ref.mean()) / ref.std()
+
+    # Run the model
+    with torch.no_grad():
+        sources = apply_model(model, wav[None], device="cpu")[0]
+
+    # Denormalize
+    sources = sources * ref.std() + ref.mean()
+
+    # Save each stem
+    stem_names = model.sources  # ['drums', 'bass', 'other', 'vocals']
+    result = {}
+
+    for i, name in enumerate(stem_names):
+        stem_path = os.path.join(output_dir, f"{name}.wav")
+        save_wav(sources[i], stem_path, model.samplerate)
+        result[name] = stem_path
+
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MixReady Stem Separator")
+    parser.add_argument("file", help="Path to audio file")
+    parser.add_argument("output_dir", help="Directory to save stems")
+    args = parser.parse_args()
+
+    if not check_demucs_available():
+        print(json.dumps({"error": "demucs not installed. Run: pip install demucs"}))
+        sys.exit(1)
+
+    try:
+        result = separate(args.file, args.output_dir)
+        print(json.dumps(result))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)

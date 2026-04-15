@@ -86,7 +86,9 @@ public static class BpmDetector
 
         var bpm = CorrectOctaveErrors(rawBpm, onsetSignal, hopsPerSecond, genreRange);
 
-        return Math.Clamp(Math.Round(bpm), MinBpm, MaxBpm);
+        // Return full precision — rounding introduces cumulative drift over many bars.
+        // Example: 95.3 rounded to 95 drifts 80ms over 8 bars.
+        return Math.Clamp(bpm, MinBpm, MaxBpm);
     }
 
     // ---------------------------------------------------------------

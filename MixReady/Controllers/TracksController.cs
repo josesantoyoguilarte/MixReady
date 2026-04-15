@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using MixReady.Helpers;
 using MixReady.Jobs;
+using MixReady.Models;
 using MixReady.Services;
 using MixReady.Storage;
 
@@ -58,13 +59,26 @@ public class TracksController : ControllerBase
     /// <summary>
     /// Trigger intro generation for a track.
     /// Optionally pass a genre to override auto-detection.
+    /// Mode: "groove" (default) extracts the track's own drums, "synth" generates from scratch.
+    /// Bars: 4, 8, or 16 — how many bars to extract (default 8).
+    /// Loop: if true, loops the extracted section to double its length (e.g. 8 bars becomes 16).
+    /// IntroOnly: if true, returns just the intro. If false (default), returns intro + full song.
     /// </summary>
     [HttpPost("{id}/generate-intro")]
-    public IActionResult GenerateIntro(Guid id, [FromQuery] string? genre = null)
+    public IActionResult GenerateIntro(
+        Guid id,
+        [FromQuery] string? genre = null,
+        [FromQuery] string mode = "groove",
+        [FromQuery] int bars = 8,
+        [FromQuery] bool loop = false,
+        [FromQuery] bool introOnly = false)
     {
         var track = _trackService.GetById(id);
         if (track == null)
             return NotFound();
+
+        if (bars != 4 && bars != 8 && bars != 16)
+            return BadRequest(new { error = "bars must be 4, 8, or 16." });
 
         if (!string.IsNullOrWhiteSpace(genre) &&
             !GenreAnalyzer.SupportedGenres.Contains(genre, StringComparer.OrdinalIgnoreCase))
@@ -76,9 +90,88 @@ public class TracksController : ControllerBase
             });
         }
 
-        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job => job.Execute(id, genre));
+        var useGroove = !mode.Equals("synth", StringComparison.OrdinalIgnoreCase);
+        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job => job.Execute(id, genre, useGroove, bars, loop, introOnly));
 
-        return Ok(new { jobId });
+        return Ok(new { jobId, mode = useGroove ? "groove" : "synth", bars, loop, introOnly });
+    }
+
+    /// <summary>
+    /// Diagnostic: check Python and demucs availability.
+    /// Also tests the actual Python path resolution.
+    /// </summary>
+    [HttpGet("diagnostics/python")]
+    public IActionResult PythonDiagnostics()
+    {
+        var pythonAvailable = PythonAnalyzer.IsAvailable();
+        var demucsAvailable = PythonAnalyzer.IsSeparationAvailable();
+
+        // Test actual python path
+        string? pythonPath = null;
+        string? scriptPath = null;
+        string? pythonTest = null;
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            foreach (var ver in new[] { "Python313", "Python312", "Python311", "Python310", "Python39" })
+            {
+                var p = System.IO.Path.Combine(localAppData, "Programs", ver, "python.exe");
+                if (System.IO.File.Exists(p)) { pythonPath = p; break; }
+            }
+
+            // Check script path
+            var candidates = new[]
+            {
+                System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "scripts", "separate.py")),
+                System.IO.Path.Combine(AppContext.BaseDirectory, "scripts", "separate.py"),
+                System.IO.Path.Combine(Directory.GetCurrentDirectory(), "scripts", "separate.py"),
+            };
+            foreach (var c in candidates)
+            {
+                if (System.IO.File.Exists(c)) { scriptPath = c; break; }
+            }
+
+            // Quick test: can python import demucs?
+            if (pythonPath != null)
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = pythonPath,
+                    Arguments = "-c \"import demucs; print('demucs OK')\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                var proc = System.Diagnostics.Process.Start(psi);
+                if (proc != null)
+                {
+                    pythonTest = proc.StandardOutput.ReadToEnd().Trim();
+                    var err = proc.StandardError.ReadToEnd().Trim();
+                    proc.WaitForExit(5000);
+                    if (proc.ExitCode != 0) pythonTest = $"FAILED: {err}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            pythonTest = $"Exception: {ex.Message}";
+        }
+
+        return Ok(new
+        {
+            pythonAvailable,
+            demucsAvailable,
+            pythonPath,
+            scriptPath,
+            pythonTest,
+            baseDirectory = AppContext.BaseDirectory,
+            message = demucsAvailable
+                ? "Demucs AI vocal removal is available."
+                : pythonAvailable
+                    ? "Python found but demucs script missing."
+                    : "Python not found. Using biquad fallback (vocals will leak)."
+        });
     }
 
     /// <summary>
@@ -170,6 +263,7 @@ public class TracksController : ControllerBase
 
     /// <summary>
     /// Check the processing status of a track.
+    /// Returns ready=true and a downloadUrl when processing is complete.
     /// </summary>
     [HttpGet("{id}/status")]
     public IActionResult GetStatus(Guid id)
@@ -178,14 +272,25 @@ public class TracksController : ControllerBase
         if (track == null)
             return NotFound();
 
+        var ready = track.Status == TrackStatus.Completed;
+
         return Ok(new
         {
             trackId = track.Id,
             status = track.Status.ToString(),
+            ready,
+            message = track.Status switch
+            {
+                TrackStatus.Uploaded => "Waiting to start...",
+                TrackStatus.Processing => ">>> PROCESSING — please wait, demucs AI is removing vocals... <<<",
+                TrackStatus.Completed => ">>> DONE! Download your intro using the downloadUrl below. <<<",
+                TrackStatus.Failed => $">>> FAILED: {track.ErrorMessage} <<<",
+                _ => ""
+            },
+            downloadUrl = ready ? $"/api/Tracks/{track.Id}/download" : null,
             detectedBpm = track.DetectedBpm,
             detectedGenre = track.DetectedGenre,
-            detectedKey = track.DetectedKey,
-            errorMessage = track.ErrorMessage
+            detectedKey = track.DetectedKey
         });
     }
 
