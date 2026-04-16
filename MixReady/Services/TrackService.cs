@@ -66,6 +66,49 @@ public class TrackService : ITrackService
         {
             track.Status = status;
             track.ErrorMessage = errorMessage;
+            if (status == TrackStatus.Queued)
+                track.QueuedAt = DateTime.UtcNow;
+        }
+    }
+
+    public int CountByStatus(TrackStatus status, Guid? beforeId = null)
+    {
+        if (beforeId == null)
+            return _tracks.Values.Count(t => t.Status == status);
+
+        // Count tracks with this status that were queued before the given track
+        var refTrack = GetById(beforeId.Value);
+        if (refTrack?.QueuedAt == null)
+            return _tracks.Values.Count(t => t.Status == status);
+
+        return _tracks.Values.Count(t => t.Status == status && t.QueuedAt < refTrack.QueuedAt);
+    }
+
+    public void SetStemsDirectory(Guid id, string stemsDir)
+    {
+        if (_tracks.TryGetValue(id, out var track))
+        {
+            track.StemsDirectory = stemsDir;
+            track.StemsSeparating = false;
+            track.StemsError = null;
+        }
+    }
+
+    public void SetStemsError(Guid id, string error)
+    {
+        if (_tracks.TryGetValue(id, out var track))
+        {
+            track.StemsError = error;
+            track.StemsSeparating = false;
+        }
+    }
+
+    public void SetStemsSeparating(Guid id, bool separating)
+    {
+        if (_tracks.TryGetValue(id, out var track))
+        {
+            track.StemsSeparating = separating;
+            if (separating) track.StemsError = null;
         }
     }
 }

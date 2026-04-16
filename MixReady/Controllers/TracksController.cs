@@ -62,7 +62,8 @@ public class TracksController : ControllerBase
     /// Mode: "groove" (default) extracts the track's own drums, "synth" generates from scratch.
     /// Bars: 4, 8, or 16 — how many bars to extract (default 8).
     /// Loop: if true, loops the extracted section to double its length (e.g. 8 bars becomes 16).
-    /// IntroOnly: if true, returns just the intro. If false (default), returns intro + full song.
+    /// IntroOnly: if true, returns just the intro. If false (default), returns intro + song.
+    /// SkipOriginalIntro: if true, the original song starts after its vocal intro (at the drop/chorus).
     /// </summary>
     [HttpPost("{id}/generate-intro")]
     public IActionResult GenerateIntro(
@@ -71,7 +72,12 @@ public class TracksController : ControllerBase
         [FromQuery] string mode = "groove",
         [FromQuery] int bars = 8,
         [FromQuery] bool loop = false,
-        [FromQuery] bool introOnly = false)
+        [FromQuery] bool introOnly = false,
+        [FromQuery] bool skipOriginalIntro = false,
+        [FromQuery] string? stems = null,
+        [FromQuery] double? regionStart = null,
+        [FromQuery] double? regionEnd = null,
+        [FromQuery] double? songStart = null)
     {
         var track = _trackService.GetById(id);
         if (track == null)
@@ -91,9 +97,13 @@ public class TracksController : ControllerBase
         }
 
         var useGroove = !mode.Equals("synth", StringComparison.OrdinalIgnoreCase);
-        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job => job.Execute(id, genre, useGroove, bars, loop, introOnly));
 
-        return Ok(new { jobId, mode = useGroove ? "groove" : "synth", bars, loop, introOnly });
+        // Mark as Queued immediately so the UI knows it's pending
+        _trackService.SetStatus(id, TrackStatus.Queued);
+
+        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job => job.Execute(id, genre, useGroove, bars, loop, introOnly, skipOriginalIntro, stems, regionStart, regionEnd, songStart));
+
+        return Ok(new { jobId, mode = useGroove ? "groove" : "synth", bars, loop, introOnly, skipOriginalIntro, stems, regionStart, regionEnd, songStart });
     }
 
     /// <summary>
@@ -274,6 +284,17 @@ public class TracksController : ControllerBase
 
         var ready = track.Status == TrackStatus.Completed;
 
+        // Count how many tracks are ahead in the queue
+        int queuePosition = 0;
+        if (track.Status == TrackStatus.Queued)
+        {
+            queuePosition = _trackService.CountByStatus(TrackStatus.Processing)
+                          + _trackService.CountByStatus(TrackStatus.Queued, beforeId: track.Id);
+        }
+
+        var processingCount = _trackService.CountByStatus(TrackStatus.Processing);
+        var queuedCount = _trackService.CountByStatus(TrackStatus.Queued);
+
         return Ok(new
         {
             trackId = track.Id,
@@ -281,10 +302,13 @@ public class TracksController : ControllerBase
             ready,
             message = track.Status switch
             {
-                TrackStatus.Uploaded => "Waiting to start...",
-                TrackStatus.Processing => ">>> PROCESSING — please wait, demucs AI is removing vocals... <<<",
-                TrackStatus.Completed => ">>> DONE! Download your intro using the downloadUrl below. <<<",
-                TrackStatus.Failed => $">>> FAILED: {track.ErrorMessage} <<<",
+                TrackStatus.Uploaded => "Ready — click Generate to start.",
+                TrackStatus.Queued => queuePosition > 0
+                    ? $"In queue (position {queuePosition + 1}) — {processingCount} track(s) processing, {queuedCount} queued."
+                    : $"In queue — will start shortly. {processingCount} track(s) processing.",
+                TrackStatus.Processing => "Processing — AI is removing vocals and extracting rhythm...",
+                TrackStatus.Completed => "Done! Preview and download below.",
+                TrackStatus.Failed => $"Failed: {track.ErrorMessage}",
                 _ => ""
             },
             downloadUrl = ready ? $"/api/Tracks/{track.Id}/download" : null,
@@ -309,5 +333,33 @@ public class TracksController : ControllerBase
 
         var fileBytes = System.IO.File.ReadAllBytes(track.ProcessedFilePath);
         return File(fileBytes, "audio/wav", $"{Path.GetFileNameWithoutExtension(track.OriginalFileName)}_intro.wav");
+    }
+
+    /// <summary>
+    /// Stream the original uploaded track for preview.
+    /// </summary>
+    [HttpGet("{id}/original")]
+    public IActionResult Original(Guid id)
+    {
+        var track = _trackService.GetById(id);
+        if (track == null)
+            return NotFound();
+
+        if (string.IsNullOrEmpty(track.FilePath) || !System.IO.File.Exists(track.FilePath))
+            return NotFound("Original file not found.");
+
+        var ext = Path.GetExtension(track.FilePath).ToLowerInvariant();
+        var contentType = ext switch
+        {
+            ".wav" => "audio/wav",
+            ".mp3" => "audio/mpeg",
+            ".flac" => "audio/flac",
+            ".ogg" => "audio/ogg",
+            ".aac" => "audio/aac",
+            _ => "application/octet-stream"
+        };
+
+        var stream = new FileStream(track.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return File(stream, contentType, enableRangeProcessing: true);
     }
 }

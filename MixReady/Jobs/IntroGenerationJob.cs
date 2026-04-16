@@ -17,7 +17,7 @@ public class IntroGenerationJob
         _fileStorageService = fileStorageService;
     }
 
-    public Task Execute(Guid trackId, string? genreOverride = null, bool useGrooveExtraction = true, int extractBars = 8, bool loop = false, bool introOnly = false)
+    public Task Execute(Guid trackId, string? genreOverride = null, bool useGrooveExtraction = true, int extractBars = 8, bool loop = false, bool introOnly = false, bool skipOriginalIntro = false, string? stems = null, double? regionStart = null, double? regionEnd = null, double? songStart = null)
     {
         var track = _trackService.GetById(trackId)
             ?? throw new InvalidOperationException($"Track {trackId} not found.");
@@ -28,10 +28,20 @@ public class IntroGenerationJob
         {
             var outputPath = _fileStorageService.GetProcessedPath(trackId);
 
+            // Parse selected stems
+            string[]? selectedStems = null;
+            if (!string.IsNullOrEmpty(stems))
+                selectedStems = stems.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
             var (detectedBpm, detectedGenre, detectedKey) = IntroGenerator.Generate(
                 track.FilePath, outputPath, genreOverride: genreOverride,
                 useGrooveExtraction: useGrooveExtraction, extractBars: extractBars,
-                loop: loop, introOnly: introOnly);
+                loop: loop, introOnly: introOnly, skipOriginalIntro: skipOriginalIntro,
+                stemsDirectory: track.StemsReady ? track.StemsDirectory : null,
+                selectedStems: selectedStems,
+                regionStartSeconds: regionStart,
+                regionEndSeconds: regionEnd,
+                songStartSeconds: songStart);
 
             _trackService.SetBpm(trackId, detectedBpm);
             _trackService.SetGenre(trackId, detectedGenre);

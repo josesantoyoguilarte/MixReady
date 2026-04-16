@@ -1,5 +1,4 @@
 using Hangfire;
-using Hangfire;
 using MixReady.Services;
 using MixReady.Storage;
 
@@ -11,10 +10,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Hangfire
+// Hangfire — limit to 2 concurrent workers (demucs is CPU/RAM heavy)
 builder.Services.AddHangfire(config =>
     config.UseInMemoryStorage());
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+});
 
 // Application services
 builder.Services.AddSingleton<ITrackService, TrackService>();

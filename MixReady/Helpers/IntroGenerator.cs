@@ -33,7 +33,13 @@ public static class IntroGenerator
         bool useGrooveExtraction = true,
         int extractBars = 8,
         bool loop = false,
-        bool introOnly = false)
+        bool introOnly = false,
+        bool skipOriginalIntro = false,
+        string? stemsDirectory = null,
+        string[]? selectedStems = null,
+        double? regionStartSeconds = null,
+        double? regionEndSeconds = null,
+        double? songStartSeconds = null)
     {
         // Step 1: Analyze the track
         var analysis = AnalyzeTrack(inputPath, genreOverride);
@@ -60,10 +66,26 @@ public static class IntroGenerator
 
         float[] drumIntro;
 
-        // Always try groove extraction first — use the track's own audio.
-        // This gives the best result because it's the actual song's groove.
-        // Only fall back to synth if extraction produces silence.
-        if (useGrooveExtraction)
+        // If stems are available and specific stems selected, build intro from those stems
+        if (!string.IsNullOrEmpty(stemsDirectory) && selectedStems != null && selectedStems.Length > 0
+            && Directory.Exists(stemsDirectory))
+        {
+            drumIntro = BuildIntroFromSelectedStems(
+                stemsDirectory, selectedStems,
+                format.SampleRate, format.Channels,
+                bpm, actualIntroBars, extractBars, loop,
+                regionStartSeconds, regionEndSeconds);
+
+            // Fallback if stem-based intro is silent
+            var stemRms = DrumIsolator.CalculateRms(drumIntro);
+            if (stemRms < targetRms * 0.05f)
+            {
+                drumIntro = GrooveExtractor.BuildIntroFromGroove(
+                    inputPath, originalSamples, format.SampleRate, format.Channels,
+                    bpm, bassFreq, actualIntroBars, extractBars, loop);
+            }
+        }
+        else if (useGrooveExtraction)
         {
             drumIntro = GrooveExtractor.BuildIntroFromGroove(
                 inputPath,
@@ -98,10 +120,25 @@ public static class IntroGenerator
         }
         else
         {
-            // Intro + full song with beat-aligned crossfade
             var secondsPerBar = (60.0 / bpm) * 4;
             var crossfadeSeconds = secondsPerBar * crossfadeBars;
-            var crossfadeStartSample = (int)(crossfadeStartSeconds * format.SampleRate) * format.Channels;
+
+            int crossfadeStartSample;
+            if (songStartSeconds.HasValue)
+            {
+                // User explicitly set where the song should start
+                crossfadeStartSample = (int)(songStartSeconds.Value * format.SampleRate) * format.Channels;
+            }
+            else if (skipOriginalIntro)
+            {
+                // Skip intro, no explicit song start — use recommended point
+                crossfadeStartSample = (int)(crossfadeStartSeconds * format.SampleRate) * format.Channels;
+            }
+            else
+            {
+                // Keep the full original song — crossfade at the very beginning
+                crossfadeStartSample = 0;
+            }
 
             finalOutput = CombineWithCrossfadeAtPosition(
                 drumIntro,
@@ -266,6 +303,77 @@ public static class IntroGenerator
             if (introSamples[i] > 0.98f) introSamples[i] = 0.98f + (introSamples[i] - 0.98f) * 0.1f;
             if (introSamples[i] < -0.98f) introSamples[i] = -0.98f + (introSamples[i] + 0.98f) * 0.1f;
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Build intro from selected stems
+    // -----------------------------------------------------------------
+
+    private static float[] BuildIntroFromSelectedStems(
+        string stemsDir, string[] selectedStems,
+        int sampleRate, int channels,
+        double bpm, int totalBars, int extractBars, bool loop,
+        double? regionStartSeconds = null, double? regionEndSeconds = null)
+    {
+        var secondsPerBar = (60.0 / bpm) * 4;
+        var samplesPerBar = (int)Math.Round(secondsPerBar * sampleRate) * channels;
+
+        // If a region is specified, use that; otherwise use first N bars
+        int regionStartSample, regionLength;
+        if (regionStartSeconds.HasValue && regionEndSeconds.HasValue && regionEndSeconds > regionStartSeconds)
+        {
+            regionStartSample = (int)(regionStartSeconds.Value * sampleRate) * channels;
+            var regionEndSample = (int)(regionEndSeconds.Value * sampleRate) * channels;
+            regionLength = regionEndSample - regionStartSample;
+        }
+        else
+        {
+            regionStartSample = 0;
+            regionLength = samplesPerBar * extractBars;
+        }
+
+        // Combine selected stems from the same region
+        float[]? combined = null;
+        foreach (var stem in selectedStems)
+        {
+            var path = Path.Combine(stemsDir, $"{stem.ToLower()}.wav");
+            if (!File.Exists(path)) continue;
+
+            using var reader = new AudioFileReader(path);
+            var samples = ReadAllSamples(reader);
+
+            // Clamp region to available samples
+            var start = Math.Min(regionStartSample, samples.Length);
+            var end = Math.Min(start + regionLength, samples.Length);
+            var len = end - start;
+            if (len <= 0) continue;
+
+            if (combined == null)
+            {
+                combined = new float[len];
+                Array.Copy(samples, start, combined, 0, len);
+            }
+            else
+            {
+                var mixLen = Math.Min(combined.Length, len);
+                for (int i = 0; i < mixLen; i++)
+                    combined[i] += samples[start + i];
+            }
+        }
+
+        if (combined == null)
+            return new float[regionLength > 0 ? regionLength : samplesPerBar * extractBars];
+
+        // Loop if requested
+        if (loop && totalBars > extractBars)
+        {
+            var looped = new float[combined.Length * 2];
+            Array.Copy(combined, looped, combined.Length);
+            Array.Copy(combined, 0, looped, combined.Length, combined.Length);
+            return looped;
+        }
+
+        return combined;
     }
 
     // -----------------------------------------------------------------

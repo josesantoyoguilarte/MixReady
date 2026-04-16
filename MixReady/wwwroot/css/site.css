@@ -19,4 +19,171 @@ html {
 
 body {
   margin-bottom: 60px;
+  background: #0d0d0d;
+  color: #e0e0e0;
+}
+
+/* MixReady UI */
+.mx-brand {
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #00e5ff !important;
+  letter-spacing: 1px;
+}
+
+.mx-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.mx-drop {
+  border: 2px dashed #444;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #111122;
+}
+
+.mx-drop:hover, .mx-drop.dragover {
+  border-color: #00e5ff;
+  background: #1a1a3e;
+}
+
+.mx-drop .icon {
+  font-size: 3rem;
+  color: #555;
+}
+
+.mx-drop.dragover .icon {
+  color: #00e5ff;
+}
+
+.mx-btn {
+  background: #00e5ff;
+  color: #000;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.mx-btn:hover {
+  background: #00b8d4;
+  color: #000;
+}
+
+.mx-btn:disabled {
+  background: #333;
+  color: #666;
+}
+
+.mx-btn-outline {
+  background: transparent;
+  color: #00e5ff;
+  border: 2px solid #00e5ff;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.mx-btn-outline:hover {
+  background: #00e5ff;
+  color: #000;
+}
+
+.mx-status {
+  font-size: 1.1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mx-status.processing {
+  background: #1a1a3e;
+  border: 1px solid #ffc107;
+  color: #ffc107;
+  animation: pulse 1.5s infinite;
+}
+
+.mx-status.queued {
+  background: #1a1a2e;
+  border: 1px solid #888;
+  color: #aaa;
+  animation: pulse 2s infinite;
+}
+
+.mx-status.completed {
+  background: #1a3e1a;
+  border: 1px solid #4caf50;
+  color: #4caf50;
+}
+
+.mx-status.failed {
+  background: #3e1a1a;
+  border: 1px solid #f44336;
+  color: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.mx-option-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mx-option-group .btn {
+  flex: 1;
+  border-radius: 8px;
+}
+
+.mx-option-group .btn-outline-info {
+  color: #00e5ff;
+  border-color: #00e5ff;
+}
+
+.mx-option-group .btn-outline-info:hover,
+.mx-option-group .btn-check:checked + .btn-outline-info {
+  background: #00e5ff;
+  color: #000;
+}
+
+.mx-audio-player {
+  width: 100%;
+  margin-top: 1rem;
+  border-radius: 8px;
+}
+
+.mx-filename {
+  color: #00e5ff;
+  font-weight: 600;
+}
+
+.navbar {
+  background: #111122 !important;
+  border-bottom: 1px solid #2a2a4a !important;
+}
+
+.footer {
+  background: #111122;
+  border-top: 1px solid #2a2a4a !important;
+  color: #555;
+}
+
+label {
+  font-weight: 600;
+  color: #aaa;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

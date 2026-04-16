@@ -80,7 +80,7 @@ def detect_bpm(y, sr, genre=None):
             mid = (low + high) / 2
             tempo = min(in_range, key=lambda c: abs(c - mid))
 
-    return round(tempo, 3)  # Full precision — rounding causes cumulative drift
+    return round(tempo, 3)  # Full precision â€” rounding causes cumulative drift
 
 
 # ---------------------------------------------------------------

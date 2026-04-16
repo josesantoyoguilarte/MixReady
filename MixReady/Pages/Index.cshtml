@@ -1,10 +1,806 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "MixReady";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<script src="https://unpkg.com/wavesurfer.js@7"></script>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+
+        <!-- Upload area -->
+        <div class="mx-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">🎵 Upload Tracks</h4>
+                <span class="text-muted small" id="track-counter">0 / 5</span>
+            </div>
+            <div id="drop-zone" class="mx-drop">
+                <div class="icon">📁</div>
+                <p class="mt-2 mb-1">Drag & drop up to 5 tracks here</p>
+                <p class="text-muted small">or click to browse — MP3, WAV, FLAC, OGG, AAC (max 100 MB each)</p>
+                <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.aac" class="d-none" multiple />
+            </div>
+        </div>
+
+        <!-- Track list -->
+        <div id="track-list"></div>
+
+    </div>
 </div>
+
+<!-- Track card template (hidden) -->
+<template id="track-template">
+    <div class="mx-card mb-4 track-card" data-idx="">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="track-number badge bg-info text-dark me-2">#1</span>
+                <span class="mx-filename track-name"></span>
+            </div>
+            <button class="btn btn-sm btn-outline-danger btn-remove" title="Remove">✕</button>
+        </div>
+
+        <!-- Original preview -->
+        <div class="track-original-preview d-none mb-3">
+            <label class="small">Preview Original</label>
+            <audio controls class="mx-audio-player track-original-player"></audio>
+        </div>
+
+        <!-- Waveform + BPM/Key -->
+        <div class="track-waveform-area d-none mb-3">
+            <div class="track-waveform" style="height:60px;background:#111;border-radius:6px;position:relative;cursor:pointer;margin-top:14px;"></div>
+            <div class="track-waveform-hint" style="font-size:0.6rem;color:#555;text-align:right;">Click on waveform to set intro extraction start</div>
+            <div class="track-region-info small mt-1" style="color:#00e5ff;"></div>
+            <div class="row text-center mt-2 g-2">
+                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">BPM</span><span class="track-detected-bpm" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
+                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">KEY</span><span class="track-detected-key" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
+                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">GENRE</span><span class="track-detected-genre" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
+            </div>
+        </div>
+
+        <!-- Stems -->
+        <div class="track-stems-area d-none mb-3">
+            <div class="track-stems-status small text-center mb-2" style="color:#ffc107;">Separating stems...</div>
+            <div class="track-stems d-none">
+                <label class="small mb-1" style="color:#888;">Select stems for intro extraction:</label>
+                <div class="track-stem-row" data-stem="drums">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <input type="checkbox" class="track-stem-check" data-stem="drums" checked style="width:16px;height:16px;accent-color:#00e5ff;">
+                        <button class="stem-play-btn" data-stem="drums" style="width:24px;height:24px;border-radius:50%;border:2px solid #e74c3c;background:transparent;color:#e74c3c;font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">DRUMS</span>
+                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#e74c3c22;color:#e74c3c;">DETECTED</span>
+                    </div>
+                    <div class="track-stem-wf" data-stem="drums" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
+                </div>
+                <div class="track-stem-row" data-stem="bass">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <input type="checkbox" class="track-stem-check" data-stem="bass" checked style="width:16px;height:16px;accent-color:#00e5ff;">
+                        <button class="stem-play-btn" data-stem="bass" style="width:24px;height:24px;border-radius:50%;border:2px solid #3498db;background:transparent;color:#3498db;font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">BASS</span>
+                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#3498db22;color:#3498db;">DETECTED</span>
+                    </div>
+                    <div class="track-stem-wf" data-stem="bass" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
+                </div>
+                <div class="track-stem-row" data-stem="other">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <input type="checkbox" class="track-stem-check" data-stem="other" checked style="width:16px;height:16px;accent-color:#00e5ff;">
+                        <button class="stem-play-btn" data-stem="other" style="width:24px;height:24px;border-radius:50%;border:2px solid #2ecc71;background:transparent;color:#2ecc71;font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">MELODY / INSTRUMENTS</span>
+                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#2ecc7122;color:#2ecc71;">DETECTED</span>
+                    </div>
+                    <div class="track-stem-wf" data-stem="other" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
+                </div>
+                <div class="track-stem-row" data-stem="vocals">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <input type="checkbox" class="track-stem-check" data-stem="vocals" style="width:16px;height:16px;accent-color:#00e5ff;">
+                        <button class="stem-play-btn" data-stem="vocals" style="width:24px;height:24px;border-radius:50%;border:2px solid #9b59b6;background:transparent;color:#9b59b6;font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">VOCALS</span>
+                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#9b59b622;color:#9b59b6;">DETECTED</span>
+                    </div>
+                    <div class="track-stem-wf" data-stem="vocals" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config -->
+        <div class="track-config">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="small">Bars</label>
+                    <div class="mx-option-group">
+                        <input type="radio" class="btn-check track-bars" value="4">
+                        <label class="btn btn-outline-info btn-sm">4</label>
+                        <input type="radio" class="btn-check track-bars" value="8" checked>
+                        <label class="btn btn-outline-info btn-sm">8</label>
+                        <input type="radio" class="btn-check track-bars" value="16">
+                        <label class="btn btn-outline-info btn-sm">16</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="small">Loop</label>
+                    <div class="form-check form-switch mt-1">
+                        <input class="form-check-input track-loop" type="checkbox">
+                        <label class="form-check-label small">Loop</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="small">Output</label>
+                    <div class="mx-option-group">
+                        <input type="radio" class="btn-check track-output" value="full" checked>
+                        <label class="btn btn-outline-info btn-sm">Intro+Song</label>
+                        <input type="radio" class="btn-check track-output" value="intro">
+                        <label class="btn btn-outline-info btn-sm">Intro Only</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="small">Genre</label>
+                    <select class="form-select form-select-sm bg-dark text-light border-secondary track-genre">
+                        <option value="">Auto</option>
+                        <option>Reggaeton</option>
+                        <option>Reparto</option>
+                        <option>Dembow</option>
+                        <option>Hip-Hop</option>
+                        <option>House</option>
+                        <option>Techno</option>
+                        <option>Pop</option>
+                        <option>R&B</option>
+                        <option>Drum & Bass</option>
+                        <option>Trance</option>
+                        <option>Dubstep</option>
+                        <option>Disco/Funk</option>
+                        <option>Salsa</option>
+                        <option>Merengue</option>
+                        <option>Bachata</option>
+                        <option>Cumbia</option>
+                        <option>Vallenato</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="small">Song Starts</label>
+                    <select class="form-select form-select-sm bg-dark text-light border-secondary track-song-mode">
+                        <option value="start">From beginning</option>
+                        <option value="pick">Pick on waveform</option>
+                    </select>
+                    <div class="small mt-1 track-song-start-info d-none" style="color:#ff9800;"></div>
+                </div>
+            </div>
+            <div class="text-end mt-2">
+                <button class="mx-btn btn-sm btn-generate">🚀 Generate</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="track-status-area d-none mt-3">
+            <div class="mx-status track-status" data-role="status">Processing...</div>
+            <div class="track-result-info d-none mt-2">
+                <div class="row text-center">
+                    <div class="col-4"><span class="text-muted small">BPM</span><br><strong class="track-bpm">—</strong></div>
+                    <div class="col-4"><span class="text-muted small">Genre</span><br><strong class="track-det-genre">—</strong></div>
+                    <div class="col-4"><span class="text-muted small">Key</span><br><strong class="track-key">—</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="track-result d-none mt-3">
+            <label class="small">🎧 Preview Result</label>
+            <audio controls class="mx-audio-player track-result-player"></audio>
+            <div class="text-end mt-2">
+                <a href="#" class="mx-btn-outline btn-sm track-download" download>⬇ Download</a>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+<script>
+    const API = '/api/Tracks';
+    const API_K = '/api/Kitchen';
+    const MAX_TRACKS = 5;
+    const tracks = []; // { idx, trackId, fileName, pollTimer, ws, region }
+
+    // --- Unique IDs for radio buttons ---
+    let idCounter = 0;
+    function uid() { return `r${++idCounter}`; }
+
+    // --- Upload ---
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.addEventListener('click', () => { if (tracks.length < MAX_TRACKS) fileInput.click(); });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files).slice(0, MAX_TRACKS - tracks.length);
+        files.forEach(f => uploadFile(f));
+    });
+    fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files).slice(0, MAX_TRACKS - tracks.length);
+        files.forEach(f => uploadFile(f));
+        fileInput.value = '';
+    });
+
+    function updateCounter() {
+        document.getElementById('track-counter').textContent = `${tracks.length} / ${MAX_TRACKS}`;
+        if (tracks.length >= MAX_TRACKS) {
+            dropZone.style.opacity = '0.4';
+            dropZone.style.pointerEvents = 'none';
+        } else {
+            dropZone.style.opacity = '1';
+            dropZone.style.pointerEvents = '';
+        }
+    }
+
+    async function uploadFile(file) {
+        if (tracks.length >= MAX_TRACKS) return;
+
+        const idx = Date.now() + Math.random();
+        const entry = { idx, trackId: null, fileName: file.name, pollTimer: null };
+        tracks.push(entry);
+        updateCounter();
+
+        // Create card from template
+        const template = document.getElementById('track-template');
+        const card = template.content.cloneNode(true).querySelector('.track-card');
+        card.dataset.idx = idx;
+        card.querySelector('.track-number').textContent = `#${tracks.length}`;
+        card.querySelector('.track-name').textContent = file.name;
+
+        // Assign unique IDs to radio buttons
+        card.querySelectorAll('.track-bars').forEach((inp, i) => {
+            const id = uid();
+            inp.id = id;
+            inp.name = `bars-${idx}`;
+            inp.nextElementSibling.setAttribute('for', id);
+        });
+        card.querySelectorAll('.track-output').forEach((inp, i) => {
+            const id = uid();
+            inp.id = id;
+            inp.name = `output-${idx}`;
+            inp.nextElementSibling.setAttribute('for', id);
+        });
+
+        // Wire up generate button
+        card.querySelector('.btn-generate').addEventListener('click', () => generateTrack(idx, card));
+
+        // Wire up remove button
+        card.querySelector('.btn-remove').addEventListener('click', () => removeTrack(idx, card));
+
+        document.getElementById('track-list').appendChild(card);
+
+        // Upload
+        const form = new FormData();
+        form.append('file', file);
+        const statusArea = card.querySelector('.track-status-area');
+        const statusBox = card.querySelector('[data-role="status"]');
+        statusArea.classList.remove('d-none');
+        statusBox.className = 'mx-status processing';
+        statusBox.textContent = '⬆️ Uploading...';
+        card.querySelector('.btn-generate').disabled = true;
+
+        try {
+            const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
+            const data = await res.json();
+            if (!res.ok) {
+                statusBox.className = 'mx-status failed';
+                statusBox.textContent = '❌ Upload failed: ' + (data.error || 'Unknown error');
+                return;
+            }
+            entry.trackId = data.trackId;
+            statusBox.className = 'mx-status completed';
+            statusBox.textContent = 'Uploaded -- configure and generate!';
+            card.querySelector('.btn-generate').disabled = false;
+
+            // Show original preview
+            const preview = card.querySelector('.track-original-preview');
+            card.querySelector('.track-original-player').src = `${API}/${data.trackId}/original`;
+            preview.classList.remove('d-none');
+
+            // Show waveform
+            const wfArea = card.querySelector('.track-waveform-area');
+            wfArea.classList.remove('d-none');
+            const wfContainer = card.querySelector('.track-waveform');
+            entry.ws = WaveSurfer.create({
+                container: wfContainer,
+                url: `${API}/${data.trackId}/original`,
+                waveColor: '#00e5ff',
+                progressColor: '#00e5ff44',
+                cursorColor: '#fff',
+                height: 60, barWidth: 2, barGap: 1, barRadius: 2,
+            });
+            entry.ws.on('interaction', () => entry.ws.playPause());
+            entry.region = {};
+            entry.songStart = null;
+            entry.clickMode = 'intro'; // 'intro' or 'song'
+
+            // Waveform click — behavior depends on mode
+            wfContainer.addEventListener('click', (e) => {
+                if (!entry.ws.getDuration()) return;
+                const rect = wfContainer.getBoundingClientRect();
+                const pct = (e.clientX - rect.left) / rect.width;
+                const time = pct * entry.ws.getDuration();
+                const snapped = snapToBar(time, entry.bars);
+
+                if (entry.clickMode === 'song') {
+                    entry.songStart = snapped;
+                    const barNum = findBarNumber(snapped, entry.bars);
+                    const info = card.querySelector('.track-song-start-info');
+                    info.classList.remove('d-none');
+                    info.textContent = `Song starts at bar ${barNum || '?'} (${formatTime(snapped)})`;
+                    drawAllRegions(entry, card);
+
+                    // Switch back to intro mode after picking
+                    entry.clickMode = 'intro';
+                    wfContainer.style.cursor = 'pointer';
+                    wfContainer.style.outline = '';
+                    const hint = card.querySelector('.track-waveform-hint');
+                    hint.textContent = 'Click on waveform to set intro extraction start';
+                    hint.style.color = '#555';
+                } else {
+                    entry.region.start = snapped;
+                    const barsCount = parseInt(card.querySelector('.track-bars:checked')?.value || '8');
+                    entry.region.end = calcRegionEnd(snapped, barsCount, entry.bars, entry.ws.getDuration());
+                    drawAllRegions(entry, card);
+                }
+            });
+
+            // Song start mode toggle
+            card.querySelector('.track-song-mode').addEventListener('change', (e) => {
+                const mode = e.target.value;
+                const info = card.querySelector('.track-song-start-info');
+                const hint = card.querySelector('.track-waveform-hint');
+                if (mode === 'pick') {
+                    entry.clickMode = 'song';
+                    info.classList.remove('d-none');
+                    info.textContent = 'Click on the waveform to set song start point';
+                    info.style.color = '#ff9800';
+                    wfContainer.style.cursor = 'crosshair';
+                    wfContainer.style.outline = '2px solid #ff9800';
+                    hint.textContent = 'SONG START MODE — click on waveform to pick where the song begins';
+                    hint.style.color = '#ff9800';
+                } else {
+                    entry.clickMode = 'intro';
+                    entry.songStart = null;
+                    info.classList.add('d-none');
+                    wfContainer.style.cursor = 'pointer';
+                    wfContainer.style.outline = '';
+                    hint.textContent = 'Click on waveform to set intro extraction start';
+                    hint.style.color = '#555';
+                    drawAllRegions(entry, card);
+                }
+            });
+
+            // Re-draw region when bars count changes
+            card.querySelectorAll('.track-bars').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (entry.region.start == null) return;
+                    const barsCount = parseInt(card.querySelector('.track-bars:checked')?.value || '8');
+                    entry.region.end = calcRegionEnd(entry.region.start, barsCount, entry.bars, entry.ws.getDuration());
+                    drawAllRegions(entry, card);
+                });
+            });
+
+            // Auto-analyze for BPM/Key
+            autoAnalyze(entry, card);
+
+            // Auto-separate stems
+            autoSeparateStems(entry, card);
+        } catch (err) {
+            statusBox.className = 'mx-status failed';
+            statusBox.textContent = '❌ Upload error: ' + err.message;
+        }
+    }
+
+    // --- Snap to nearest bar boundary ---
+    function snapToBar(time, bars) {
+        if (!bars || !bars.length) return time;
+        let closest = time;
+        let minDist = Infinity;
+        for (const bar of bars) {
+            const d0 = Math.abs(bar[0] - time);
+            const d1 = Math.abs(bar[1] - time);
+            if (d0 < minDist) { minDist = d0; closest = bar[0]; }
+            if (d1 < minDist) { minDist = d1; closest = bar[1]; }
+        }
+        return closest;
+    }
+
+    // --- Calculate region end from start + N bars ---
+    function calcRegionEnd(startTime, barsCount, bars, duration) {
+        if (!bars || !bars.length) {
+            // Fallback: estimate from duration (assume ~120 BPM)
+            return Math.min(startTime + barsCount * 2, duration);
+        }
+        // Find which bar index the start falls on
+        let startIdx = 0;
+        for (let i = 0; i < bars.length; i++) {
+            if (Math.abs(bars[i][0] - startTime) < 0.1) { startIdx = i; break; }
+            if (bars[i][0] > startTime) { startIdx = Math.max(0, i - 1); break; }
+        }
+        const endIdx = Math.min(startIdx + barsCount, bars.length - 1);
+        return bars[endIdx][0];
+    }
+
+    function findBarNumber(time, bars) {
+        if (!bars || !bars.length) return null;
+        for (let i = 0; i < bars.length; i++) {
+            if (time >= bars[i][0] - 0.05 && time <= bars[i][0] + 0.05) return i + 1;
+            if (time >= bars[i][1] - 0.05 && time <= bars[i][1] + 0.05) return i + 2;
+        }
+        return null;
+    }
+
+    // --- Draw region overlay on full track + all stems ---
+    function drawAllRegions(entry, card) {
+        const wfContainer = card.querySelector('.track-waveform');
+        const dur = entry.ws?.getDuration();
+
+        // Clear all markers first
+        wfContainer?.querySelectorAll('.region-overlay,.song-start-marker').forEach(r => r.remove());
+        ['drums', 'bass', 'other', 'vocals'].forEach(stem => {
+            const stemWf = card.querySelector(`.track-stem-wf[data-stem="${stem}"]`);
+            if (stemWf) stemWf.querySelectorAll('.region-overlay,.song-start-marker').forEach(r => r.remove());
+        });
+
+        // Draw intro region (cyan)
+        const s = Math.max(0, entry.region.start || 0);
+        const e = entry.region.end || 0;
+        if (e > s) {
+            const startBar = findBarNumber(s, entry.bars);
+            const endBar = findBarNumber(e, entry.bars);
+            const barInfo = (startBar && endBar) ? ` (bar ${startBar} to ${endBar})` : '';
+            let infoText = `Intro: ${s.toFixed(1)}s - ${e.toFixed(1)}s${barInfo}`;
+            if (entry.songStart != null) {
+                const songBar = findBarNumber(entry.songStart, entry.bars);
+                infoText += ` | Song starts: bar ${songBar || '?'} (${entry.songStart.toFixed(1)}s)`;
+            }
+            card.querySelector('.track-region-info').textContent = infoText;
+
+            drawRegionOverlay(wfContainer, s, e, dur, true);
+            ['drums', 'bass', 'other', 'vocals'].forEach(stem => {
+                const stemWf = card.querySelector(`.track-stem-wf[data-stem="${stem}"]`);
+                const ws = entry.stemWs?.[stem];
+                if (stemWf && ws) {
+                    const sDur = ws.getDuration();
+                    if (sDur) drawRegionOverlay(stemWf, s, e, sDur, false);
+                    else ws.once('ready', () => drawRegionOverlay(stemWf, s, e, ws.getDuration(), false));
+                }
+            });
+        }
+
+        // Draw song start marker (orange line)
+        if (entry.songStart != null && dur) {
+            drawSongStartMarker(wfContainer, entry.songStart, dur);
+            ['drums', 'bass', 'other', 'vocals'].forEach(stem => {
+                const stemWf = card.querySelector(`.track-stem-wf[data-stem="${stem}"]`);
+                const ws = entry.stemWs?.[stem];
+                if (stemWf && ws) {
+                    const sDur = ws.getDuration();
+                    if (sDur) drawSongStartMarker(stemWf, entry.songStart, sDur);
+                    else ws.once('ready', () => drawSongStartMarker(stemWf, entry.songStart, ws.getDuration()));
+                }
+            });
+        }
+    }
+
+    function drawSongStartMarker(container, time, duration) {
+        if (!container || !duration) return;
+        const pct = (time / duration) * 100;
+        const mk = document.createElement('div');
+        mk.className = 'song-start-marker';
+        mk.style.cssText = `position:absolute;left:${pct}%;top:0;height:100%;width:2px;background:#ff9800;pointer-events:none;z-index:5;`;
+        const lbl = document.createElement('span');
+        lbl.style.cssText = 'position:absolute;top:-12px;left:-18px;font-size:8px;font-weight:bold;color:#ff9800;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        lbl.textContent = 'SONG';
+        mk.appendChild(lbl);
+        container.appendChild(mk);
+    }
+
+    function drawRegionOverlay(container, start, end, duration, showFullLabel) {
+        if (!container || !duration) return;
+        container.querySelectorAll('.region-overlay').forEach(r => r.remove());
+        const leftPct = (start / duration) * 100;
+        const widthPct = ((end - start) / duration) * 100;
+        const ov = document.createElement('div');
+        ov.className = 'region-overlay';
+        ov.style.cssText = `position:absolute;top:0;height:100%;background:rgba(0,229,255,0.15);border-left:2px solid #00e5ff;border-right:2px solid #00e5ff;pointer-events:none;z-index:3;left:${leftPct}%;width:${widthPct}%;`;
+
+        // Start time label (left edge)
+        const startLbl = document.createElement('span');
+        startLbl.style.cssText = 'position:absolute;left:3px;bottom:2px;font-size:8px;font-weight:bold;color:#00e5ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        startLbl.textContent = formatTime(start);
+        ov.appendChild(startLbl);
+
+        // End time label (right edge)
+        const endLbl = document.createElement('span');
+        endLbl.style.cssText = 'position:absolute;right:3px;bottom:2px;font-size:8px;font-weight:bold;color:#00e5ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        endLbl.textContent = formatTime(end);
+        ov.appendChild(endLbl);
+
+        // Duration label (center, only on larger overlays)
+        if (showFullLabel || widthPct > 15) {
+            const durLbl = document.createElement('span');
+            durLbl.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:9px;font-weight:bold;color:#fff;pointer-events:none;white-space:nowrap;text-shadow:0 0 4px #000;';
+            durLbl.textContent = `${(end - start).toFixed(1)}s`;
+            ov.appendChild(durLbl);
+        }
+
+        container.appendChild(ov);
+    }
+
+    function formatTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = (sec % 60).toFixed(1);
+        return m > 0 ? `${m}:${s.padStart(4,'0')}` : `${s}s`;
+    }
+
+    async function autoAnalyze(entry, card) {
+        card.querySelector('.track-detected-bpm').textContent = '...';
+        card.querySelector('.track-detected-key').textContent = '...';
+        card.querySelector('.track-detected-genre').textContent = '...';
+        try {
+            const res = await fetch(`${API_K}/${entry.trackId}/analyze`, { method: 'POST' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            card.querySelector('.track-detected-bpm').textContent = data.bpm ? Math.round(data.bpm) : '--';
+            card.querySelector('.track-detected-key').textContent = data.key || '--';
+            card.querySelector('.track-detected-genre').textContent = data.genre || '--';
+            entry.bars = data.bars || [];
+            // Draw bar markers
+            if (entry.ws && entry.bars.length) {
+                const draw = () => {
+                    const w = entry.ws.getWrapper(); if(!w) return;
+                    w.style.position = 'relative';
+                    w.style.overflow = 'visible';
+                    w.querySelectorAll('.bar-marker').forEach(m=>m.remove());
+                    const dur = entry.ws.getDuration(); if(!dur) return;
+                    entry.bars.forEach((bar,i) => {
+                        const pct = (bar[0]/dur)*100;
+                        const mk = document.createElement('div');
+                        mk.className='bar-marker';
+                        mk.style.cssText=`position:absolute;left:${pct}%;top:0;height:100%;width:1px;background:rgba(255,255,255,${i%4===0?0.3:0.12});pointer-events:none;z-index:4;`;
+                        if(i%4===0){
+                            const lb=document.createElement('span');
+                            lb.style.cssText='position:absolute;top:-12px;left:-4px;font-size:9px;font-weight:bold;color:rgba(255,255,255,0.6);pointer-events:none;';
+                            lb.textContent=i+1;
+                            mk.appendChild(lb);
+                        }
+                        w.appendChild(mk);
+                    });
+                };
+                if(entry.ws.getDuration()) draw(); else entry.ws.on('ready', draw);
+            }
+        } catch {
+            card.querySelector('.track-detected-bpm').textContent = '?';
+            card.querySelector('.track-detected-key').textContent = '?';
+            card.querySelector('.track-detected-genre').textContent = '?';
+        }
+    }
+
+    const STEM_COLORS = { drums:'#e74c3c', bass:'#3498db', other:'#2ecc71', vocals:'#9b59b6' };
+
+    async function autoSeparateStems(entry, card) {
+        const area = card.querySelector('.track-stems-area');
+        area.classList.remove('d-none');
+        const status = card.querySelector('.track-stems-status');
+        status.style.color = '#ffc107';
+        status.textContent = 'AI is separating stems...';
+        card.querySelector('.track-stems').classList.add('d-none');
+        entry.stemWs = {};
+
+        try {
+            await fetch(`${API_K}/${entry.trackId}/separate`, { method: 'POST' });
+            const poll = setInterval(async () => {
+                const res = await fetch(`${API_K}/${entry.trackId}/stems-status`);
+                const data = await res.json();
+                if (data.ready) {
+                    clearInterval(poll);
+                    status.style.color = '#4caf50';
+                    status.textContent = 'All stems detected -- select which to use for intro';
+                    card.querySelector('.track-stems').classList.remove('d-none');
+                    initIntroStemWaveforms(entry, card);
+                } else if (data.error) {
+                    clearInterval(poll);
+                    status.style.color = '#f44336';
+                    status.textContent = 'Error: ' + data.error;
+                }
+            }, 3000);
+        } catch (err) {
+            status.style.color = '#f44336';
+            status.textContent = err.message;
+        }
+    }
+
+    function initIntroStemWaveforms(entry, card) {
+        const tid = entry.trackId;
+        ['drums', 'bass', 'other', 'vocals'].forEach(stem => {
+            const container = card.querySelector(`.track-stem-wf[data-stem="${stem}"]`);
+            if (!container) return;
+            const ws = WaveSurfer.create({
+                container,
+                url: `${API_K}/${tid}/stem/${stem}`,
+                waveColor: STEM_COLORS[stem],
+                progressColor: STEM_COLORS[stem] + '44',
+                cursorColor: '#fff8',
+                height: 35, barWidth: 2, barGap: 1, barRadius: 1,
+            });
+            ws.on('interaction', () => ws.playPause());
+            entry.stemWs[stem] = ws;
+            // Draw bar markers on stems too
+            if (entry.bars && entry.bars.length) {
+                const draw = () => {
+                    const w = ws.getWrapper(); if(!w) return;
+                    w.style.position = 'relative';
+                    const dur = ws.getDuration(); if(!dur) return;
+                    entry.bars.forEach((bar,i) => {
+                        const pct = (bar[0]/dur)*100;
+                        const mk = document.createElement('div');
+                        mk.className='bar-marker';
+                        mk.style.cssText=`position:absolute;left:${pct}%;top:0;height:100%;width:1px;background:rgba(255,255,255,${i%4===0?0.25:0.08});pointer-events:none;z-index:4;`;
+                        if(i%8===0){
+                            const lb=document.createElement('span');
+                            lb.style.cssText='position:absolute;bottom:1px;left:2px;font-size:7px;color:rgba(255,255,255,0.35);pointer-events:none;';
+                            lb.textContent=i+1;
+                            mk.appendChild(lb);
+                        }
+                        w.appendChild(mk);
+                    });
+                };
+                if(ws.getDuration()) draw(); else ws.on('ready', draw);
+            }
+
+            // Redraw region on this stem once it loads (if region was selected before stems ready)
+            ws.on('ready', () => {
+                if (entry.region && entry.region.start != null && entry.region.end != null) {
+                    drawRegionOverlay(container, entry.region.start, entry.region.end, ws.getDuration(), false);
+                }
+            });
+        });
+
+        // Wire play buttons
+        card.querySelectorAll('.stem-play-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const stem = btn.dataset.stem;
+                const ws = entry.stemWs[stem];
+                if (!ws) return;
+                // Pause others
+                ['drums','bass','other','vocals'].forEach(s => { if(s!==stem && entry.stemWs[s]) entry.stemWs[s].pause(); });
+                card.querySelectorAll('.stem-play-btn').forEach(b => { b.classList.remove('playing'); b.innerHTML='&#9654;'; });
+                if (ws.isPlaying()) { ws.pause(); btn.innerHTML='&#9654;'; }
+                else { ws.play(); btn.innerHTML='&#9646;&#9646;'; btn.classList.add('playing'); ws.on('finish',()=>{btn.innerHTML='&#9654;';btn.classList.remove('playing');}); }
+            });
+        });
+    }
+
+    function removeTrack(idx, card) {
+        const entry = tracks.find(t => t.idx === idx);
+        if (entry) {
+            if (entry.pollTimer) clearInterval(entry.pollTimer);
+            if (entry.ws) entry.ws.destroy();
+            if (entry.stemWs) Object.values(entry.stemWs).forEach(w => w.destroy());
+        }
+        const i = tracks.findIndex(t => t.idx === idx);
+        if (i >= 0) tracks.splice(i, 1);
+        card.remove();
+        updateCounter();
+        // Re-number
+        document.querySelectorAll('.track-card').forEach((c, n) => {
+            c.querySelector('.track-number').textContent = `#${n + 1}`;
+        });
+    }
+
+    // --- Generate ---
+    async function generateTrack(idx, card) {
+        const entry = tracks.find(t => t.idx === idx);
+        if (!entry || !entry.trackId) return;
+
+        const bars = card.querySelector('.track-bars:checked')?.value || '8';
+        const loop = card.querySelector('.track-loop').checked;
+        const introOnly = card.querySelector('.track-output:checked')?.value === 'intro';
+        const genre = card.querySelector('.track-genre').value;
+
+        // Get selected stems
+        const selectedStems = [];
+        card.querySelectorAll('.track-stem-check:checked').forEach(cb => selectedStems.push(cb.dataset.stem));
+        const stemsParam = selectedStems.length > 0 ? selectedStems.join(',') : 'drums,bass,other';
+
+        // Song start point (null = from beginning)
+        const songStart = entry.songStart;
+        const skipOriginalIntro = songStart != null;
+
+        let url = `${API}/${entry.trackId}/generate-intro?bars=${bars}&loop=${loop}&introOnly=${introOnly}&mode=groove&skipOriginalIntro=${skipOriginalIntro}&stems=${stemsParam}`;
+        if (genre) url += `&genre=${encodeURIComponent(genre)}`;
+        if (entry.region && entry.region.start != null) url += `&regionStart=${entry.region.start.toFixed(3)}`;
+        if (entry.region && entry.region.end != null) url += `&regionEnd=${entry.region.end.toFixed(3)}`;
+        if (songStart != null) url += `&songStart=${songStart.toFixed(3)}`;
+
+        const btn = card.querySelector('.btn-generate');
+        btn.disabled = true;
+        btn.textContent = '⏳ Starting...';
+
+        const statusArea = card.querySelector('.track-status-area');
+        const statusBox = card.querySelector('[data-role="status"]');
+        statusArea.classList.remove('d-none');
+        statusBox.className = 'mx-status processing';
+        statusBox.textContent = '⏳ Starting...';
+        card.querySelector('.track-result').classList.add('d-none');
+        card.querySelector('.track-result-info').classList.add('d-none');
+
+        try {
+            const res = await fetch(url, { method: 'POST' });
+            if (!res.ok) {
+                let errMsg = 'Failed';
+                try { const err = await res.json(); errMsg = err.error || errMsg; } catch {}
+                statusBox.className = 'mx-status failed';
+                statusBox.textContent = '❌ ' + errMsg;
+                btn.disabled = false;
+                btn.textContent = '🚀 Generate';
+                return;
+            }
+            statusBox.textContent = '⏳ Processing — AI is removing vocals...';
+            startTrackPolling(entry, card);
+        } catch (err) {
+            statusBox.className = 'mx-status failed';
+            statusBox.textContent = '❌ Network error: ' + err.message;
+            btn.disabled = false;
+            btn.textContent = '🚀 Generate';
+        }
+    }
+
+    // --- Poll ---
+    function startTrackPolling(entry, card) {
+        if (entry.pollTimer) clearInterval(entry.pollTimer);
+        entry.pollTimer = setInterval(() => checkTrackStatus(entry, card), 3000);
+        checkTrackStatus(entry, card);
+    }
+
+    async function checkTrackStatus(entry, card) {
+        try {
+            const res = await fetch(`${API}/${entry.trackId}/status`);
+            const data = await res.json();
+            const statusBox = card.querySelector('[data-role="status"]');
+            const btn = card.querySelector('.btn-generate');
+
+            if (data.ready) {
+                clearInterval(entry.pollTimer);
+                statusBox.className = 'mx-status completed';
+                statusBox.textContent = '✅ ' + data.message;
+
+                card.querySelector('.track-bpm').textContent = data.detectedBpm ? Math.round(data.detectedBpm) : '—';
+                card.querySelector('.track-det-genre').textContent = data.detectedGenre || '—';
+                card.querySelector('.track-key').textContent = data.detectedKey || '—';
+                card.querySelector('.track-result-info').classList.remove('d-none');
+
+                const downloadUrl = `${API}/${entry.trackId}/download`;
+                card.querySelector('.track-result-player').src = downloadUrl;
+                card.querySelector('.track-download').href = downloadUrl;
+                card.querySelector('.track-result').classList.remove('d-none');
+
+                btn.disabled = false;
+                btn.textContent = '🔄 Re-generate';
+
+            } else if (data.status === 'Failed') {
+                clearInterval(entry.pollTimer);
+                statusBox.className = 'mx-status failed';
+                statusBox.textContent = '❌ ' + (data.message || 'Failed');
+                btn.disabled = false;
+                btn.textContent = '🚀 Generate';
+
+            } else if (data.status === 'Queued') {
+                statusBox.className = 'mx-status queued';
+                statusBox.textContent = '🕐 ' + (data.message || 'In queue...');
+
+            } else {
+                statusBox.className = 'mx-status processing';
+                statusBox.textContent = '⏳ ' + (data.message || 'Processing...');
+            }
+        } catch (err) { }
+    }
+</script>
+}
+
+

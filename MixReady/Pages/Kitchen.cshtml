@@ -1,0 +1,474 @@
+@page
+@model KitchenModel
+@{
+    ViewData["Title"] = "The Kitchen";
+}
+
+<script src="https://unpkg.com/wavesurfer.js@7"></script>
+
+<div class="row justify-content-center mt-3">
+    <div class="col-lg-12">
+        <h3 class="text-center mb-4" style="color:#00e5ff;">The Kitchen</h3>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="mx-card deck-card" id="deck-a" data-deck="a">
+                    <h5 class="text-center mb-3" style="color:#ff6b6b;">DECK A</h5>
+                    <div class="deck-upload mx-drop">
+                        <p class="mt-1 mb-0">Drop track here or click to browse</p>
+                        <input type="file" class="d-none deck-file" accept=".mp3,.wav,.flac,.ogg,.aac" />
+                    </div>
+                    <div class="deck-loaded d-none"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mx-card deck-card" id="deck-b" data-deck="b">
+                    <h5 class="text-center mb-3" style="color:#4ecdc4;">DECK B</h5>
+                    <div class="deck-upload mx-drop">
+                        <p class="mt-1 mb-0">Drop track here or click to browse</p>
+                        <input type="file" class="d-none deck-file" accept=".mp3,.wav,.flac,.ogg,.aac" />
+                    </div>
+                    <div class="deck-loaded d-none"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIX section -->
+        <div class="mx-card mt-4" id="mix-section">
+            <h5 class="text-center mb-3" style="color:#ffd93d;">MIX - Select stems and regions from any deck</h5>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label class="small">Target BPM (all stems match)</label>
+                    <input type="number" id="mix-target-bpm" class="form-control form-control-sm bg-dark text-light border-secondary" min="60" max="200" placeholder="Auto">
+                </div>
+                <div class="col-md-4">
+                    <label class="small">Bars to extract</label>
+                    <select id="mix-bars" class="form-select form-select-sm bg-dark text-light border-secondary">
+                        <option value="0">Full stems (no cut)</option>
+                        <option value="8">8 bars</option>
+                        <option value="16">16 bars</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button id="btn-mix" class="mx-btn">MIX SELECTED STEMS</button>
+                </div>
+            </div>
+            <div id="selected-summary" class="small text-muted mb-2">No stems selected.</div>
+            <div id="mix-status" class="mt-2 d-none">
+                <div class="mx-status processing" id="mix-status-box">Mixing...</div>
+            </div>
+            <div id="mix-result" class="mt-3 d-none">
+                <div id="mix-waveform" class="stem-wf" style="height:60px;"></div>
+                <audio id="mix-player" controls class="mx-audio-player mt-2"></audio>
+                <div class="text-center mt-2">
+                    <a id="mix-download" href="#" class="mx-btn-outline btn-sm" download>Download WAV</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stem-wf { background:#111; border-radius:6px; overflow:visible; margin-bottom:4px; cursor:pointer; position:relative; margin-top:14px; }
+    .stem-row { margin-bottom:6px; padding:6px 8px; border-radius:6px; background:#0d0d1a; border:1px solid transparent; transition:border-color 0.2s; }
+    .stem-row.selected { border-color:#00e5ff; background:#0d1a2a; }
+    .stem-label { font-size:0.7rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
+    .stem-badge { font-size:0.55rem; font-weight:700; padding:2px 6px; border-radius:10px; }
+    .stem-play-btn { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; padding:0; border:2px solid; cursor:pointer; background:transparent; transition:all 0.2s; }
+    .stem-play-btn:hover { transform:scale(1.15); }
+    .stem-play-btn.playing { animation:pulse 0.8s infinite; }
+    .stem-check { width:16px; height:16px; cursor:pointer; accent-color:#00e5ff; }
+    .info-box { background:#111; border-radius:8px; padding:8px 4px; border:1px solid #2a2a4a; }
+    .info-label { display:block; font-size:0.55rem; color:#666; text-transform:uppercase; letter-spacing:1px; }
+    .info-value { display:block; font-size:1.4rem; font-weight:800; color:#00e5ff; min-height:1.6em; }
+    .region-overlay { position:absolute; top:0; height:100%; background:rgba(0,229,255,0.15); border-left:2px solid #00e5ff; border-right:2px solid #00e5ff; pointer-events:none; z-index:3; }
+    .region-hint { font-size:0.6rem; color:#555; text-align:right; margin-top:1px; }
+</style>
+
+@section Scripts {
+<script>
+const API_T = '/api/Tracks';
+const API_K = '/api/Kitchen';
+const STEMS = ['drums','bass','other','vocals'];
+const STEM_INFO = {
+    drums:  { label:'DRUMS',               color:'#e74c3c' },
+    bass:   { label:'BASS',                color:'#3498db' },
+    other:  { label:'MELODY / INSTRUMENTS', color:'#2ecc71' },
+    vocals: { label:'VOCALS',              color:'#9b59b6' },
+};
+const KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const decks = {
+    a: { trackId:null, bpm:null, key:null, ws:null, stemWs:{}, bars:[], regions:{} },
+    b: { trackId:null, bpm:null, key:null, ws:null, stemWs:{}, bars:[], regions:{} }
+};
+let mixWs = null;
+
+function buildDeckUI(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const loaded = card.querySelector('.deck-loaded');
+    loaded.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="mx-filename deck-name small"></span>
+            <button class="btn btn-sm btn-outline-danger deck-clear">x</button>
+        </div>
+        <div class="stem-label mb-1">FULL TRACK</div>
+        <div class="deck-waveform stem-wf" style="height:60px;"></div>
+        <div class="row text-center my-2 g-2">
+            <div class="col-4"><div class="info-box"><span class="info-label">BPM</span><span class="info-value deck-bpm">--</span></div></div>
+            <div class="col-4"><div class="info-box"><span class="info-label">KEY</span><span class="info-value deck-key">--</span></div></div>
+            <div class="col-4"><div class="info-box"><span class="info-label">GENRE</span><span class="info-value deck-genre">--</span></div></div>
+        </div>
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark text-light border-secondary" style="font-size:0.65rem;">BPM</span>
+                    <input type="number" class="form-control bg-dark text-light border-secondary deck-new-bpm" min="60" max="200">
+                    <button class="btn btn-outline-info btn-sm deck-change-bpm">Set</button>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark text-light border-secondary" style="font-size:0.65rem;">KEY</span>
+                    <select class="form-select bg-dark text-light border-secondary deck-new-key" style="font-size:0.8rem;">
+                        ${KEYS.map(k => `<option value="${k}">${k}</option>`).join('')}
+                        ${KEYS.map(k => `<option value="${k}m">${k}m</option>`).join('')}
+                    </select>
+                    <button class="btn btn-outline-info btn-sm deck-change-key">Set</button>
+                </div>
+            </div>
+        </div>
+        <div class="deck-stems-status small text-center mb-2" style="color:#ffc107;">Separating stems...</div>
+        <div class="deck-stems d-none">
+            ${STEMS.map(s => `
+            <div class="stem-row" data-stem="${s}" data-deck="${deckId}">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <input type="checkbox" class="stem-check" data-deck="${deckId}" data-stem="${s}">
+                    <button class="stem-play-btn" style="color:${STEM_INFO[s].color};border-color:${STEM_INFO[s].color};" data-deck="${deckId}" data-stem="${s}">&#9654;</button>
+                    <span class="stem-label flex-grow-1">${STEM_INFO[s].label}</span>
+                    <span class="stem-region-info small" style="color:#00e5ff;" data-deck="${deckId}" data-stem="${s}"></span>
+                    <span class="stem-badge" style="background:${STEM_INFO[s].color}22;color:${STEM_INFO[s].color};">DETECTED</span>
+                </div>
+                <div class="stem-wf stem-wf-${s}" style="height:40px;" data-deck="${deckId}" data-stem="${s}"></div>
+                <div class="region-hint">Click to set start | Shift+click to set end</div>
+            </div>`).join('')}
+        </div>
+    `;
+    loaded.querySelector('.deck-clear').addEventListener('click', () => clearDeck(deckId));
+    loaded.querySelector('.deck-change-bpm').addEventListener('click', () => changeBpm(deckId));
+    loaded.querySelector('.deck-change-key').addEventListener('click', () => changeKey(deckId));
+    loaded.querySelectorAll('.stem-check').forEach(cb => cb.addEventListener('change', updateSelectedSummary));
+    loaded.querySelectorAll('.stem-play-btn').forEach(btn =>
+        btn.addEventListener('click', () => toggleStemPlay(btn.dataset.deck, btn.dataset.stem, btn)));
+}
+
+// Upload wiring
+document.querySelectorAll('.deck-upload').forEach(zone => {
+    const deckId = zone.closest('.deck-card').dataset.deck;
+    const fi = zone.querySelector('.deck-file');
+    zone.addEventListener('click', () => fi.click());
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if(e.dataTransfer.files.length) uploadToDeck(deckId,e.dataTransfer.files[0]); });
+    fi.addEventListener('change', () => { if(fi.files.length) uploadToDeck(deckId,fi.files[0]); fi.value=''; });
+});
+
+async function uploadToDeck(deckId, file) {
+    const card = document.getElementById(`deck-${deckId}`);
+    card.querySelector('.deck-upload').innerHTML = '<div class="spinner-border spinner-border-sm text-info"></div> Uploading...';
+    const form = new FormData(); form.append('file', file);
+    try {
+        const res = await fetch(`${API_T}/upload`, { method:'POST', body:form });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error||'Upload failed'); return; }
+        decks[deckId].trackId = data.trackId;
+        decks[deckId].regions = {};
+        buildDeckUI(deckId);
+        const loaded = card.querySelector('.deck-loaded');
+        loaded.querySelector('.deck-name').textContent = file.name;
+        card.querySelector('.deck-upload').classList.add('d-none');
+        loaded.classList.remove('d-none');
+        initMainWaveform(deckId);
+        analyzeTrack(deckId);
+        autoSeparate(deckId);
+    } catch(err) { alert(err.message); }
+}
+
+function clearDeck(deckId) {
+    decks[deckId].trackId = null; decks[deckId].bpm = null; decks[deckId].key = null; decks[deckId].regions = {};
+    if(decks[deckId].ws) { decks[deckId].ws.destroy(); decks[deckId].ws=null; }
+    Object.values(decks[deckId].stemWs).forEach(w=>w.destroy()); decks[deckId].stemWs={};
+    const card = document.getElementById(`deck-${deckId}`);
+    card.querySelector('.deck-loaded').classList.add('d-none');
+    const zone = card.querySelector('.deck-upload'); zone.classList.remove('d-none');
+    zone.innerHTML = '<p class="mt-1 mb-0">Drop track here or click to browse</p><input type="file" class="d-none deck-file" accept=".mp3,.wav,.flac,.ogg,.aac" />';
+    const fi = zone.querySelector('.deck-file');
+    zone.addEventListener('click', () => fi.click());
+    fi.addEventListener('change', () => { if(fi.files.length) uploadToDeck(deckId,fi.files[0]); fi.value=''; });
+    updateSelectedSummary();
+}
+
+function initMainWaveform(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const container = card.querySelector('.deck-waveform');
+    if(decks[deckId].ws) decks[deckId].ws.destroy();
+    const ctx = document.createElement('canvas').getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,0,60);
+    grad.addColorStop(0,'#e74c3c'); grad.addColorStop(0.33,'#3498db');
+    grad.addColorStop(0.66,'#2ecc71'); grad.addColorStop(1,'#9b59b6');
+    decks[deckId].ws = WaveSurfer.create({
+        container, url:`${API_T}/${decks[deckId].trackId}/original`,
+        waveColor:grad, progressColor:'#ffffff44', cursorColor:'#fff',
+        height:60, barWidth:2, barGap:1, barRadius:2,
+    });
+    decks[deckId].ws.on('interaction', () => decks[deckId].ws.playPause());
+}
+
+async function analyzeTrack(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const loaded = card.querySelector('.deck-loaded');
+    loaded.querySelector('.deck-bpm').textContent = '...';
+    loaded.querySelector('.deck-key').textContent = '...';
+    loaded.querySelector('.deck-genre').textContent = '...';
+    try {
+        const res = await fetch(`${API_K}/${decks[deckId].trackId}/analyze`, { method:'POST' });
+        if (!res.ok) throw new Error('Analysis failed');
+        const data = await res.json();
+        const bpm = data.bpm ? Math.round(data.bpm) : '--';
+        loaded.querySelector('.deck-bpm').textContent = bpm;
+        loaded.querySelector('.deck-key').textContent = data.key || '--';
+        loaded.querySelector('.deck-genre').textContent = data.genre || '--';
+        loaded.querySelector('.deck-new-bpm').value = bpm !== '--' ? bpm : '';
+        if (data.key) loaded.querySelector('.deck-new-key').value = data.key;
+        decks[deckId].bpm = data.bpm;
+        decks[deckId].key = data.key;
+        decks[deckId].bars = data.bars || [];
+        if (decks[deckId].ws && decks[deckId].bars.length) drawBarMarkers(decks[deckId].ws, decks[deckId].bars);
+    } catch(e) {
+        loaded.querySelector('.deck-bpm').textContent = '?';
+        loaded.querySelector('.deck-key').textContent = '?';
+        loaded.querySelector('.deck-genre').textContent = '?';
+    }
+}
+
+function drawBarMarkers(ws, bars) {
+    const draw = () => {
+        const wrapper = ws.getWrapper(); if(!wrapper) return;
+        wrapper.style.position = 'relative';
+        wrapper.style.overflow = 'visible';
+        wrapper.querySelectorAll('.bar-marker').forEach(m=>m.remove());
+        const dur = ws.getDuration(); if(!dur) return;
+        bars.forEach((bar,i) => {
+            const pct = (bar[0]/dur)*100;
+            const mk = document.createElement('div');
+            mk.className = 'bar-marker';
+            mk.style.cssText = `position:absolute;left:${pct}%;top:0;height:100%;width:1px;background:rgba(255,255,255,${i%4===0?0.3:0.12});pointer-events:none;z-index:4;`;
+            if (i%4===0) {
+                const lb = document.createElement('span');
+                lb.style.cssText = 'position:absolute;top:-12px;left:-4px;font-size:9px;font-weight:bold;color:rgba(255,255,255,0.6);pointer-events:none;';
+                lb.textContent = i+1;
+                mk.appendChild(lb);
+            }
+            wrapper.appendChild(mk);
+        });
+    };
+    if(ws.getDuration()) draw(); else ws.on('ready', draw);
+}
+
+async function autoSeparate(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const loaded = card.querySelector('.deck-loaded');
+    const status = loaded.querySelector('.deck-stems-status');
+    status.style.color='#ffc107'; status.textContent='Separating stems...';
+    loaded.querySelector('.deck-stems').classList.add('d-none');
+    try {
+        await fetch(`${API_K}/${decks[deckId].trackId}/separate`, { method:'POST' });
+        const poll = setInterval(async () => {
+            const res = await fetch(`${API_K}/${decks[deckId].trackId}/stems-status`);
+            const data = await res.json();
+            if (data.ready) {
+                clearInterval(poll); status.style.color='#4caf50'; status.textContent='All stems detected';
+                loaded.querySelector('.deck-stems').classList.remove('d-none');
+                initStemWaveforms(deckId);
+            } else if (data.error) { clearInterval(poll); status.style.color='#f44336'; status.textContent='Error: '+data.error; }
+        }, 3000);
+    } catch(err) { status.style.color='#f44336'; status.textContent=err.message; }
+}
+
+function initStemWaveforms(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    Object.values(decks[deckId].stemWs).forEach(w=>w.destroy());
+    decks[deckId].stemWs = {};
+    const tid = decks[deckId].trackId;
+
+    STEMS.forEach(stem => {
+        const container = card.querySelector(`.stem-wf-${stem}`);
+        if(!container) return;
+        const ws = WaveSurfer.create({
+            container, url:`${API_K}/${tid}/stem/${stem}`,
+            waveColor:STEM_INFO[stem].color, progressColor:STEM_INFO[stem].color+'44',
+            cursorColor:'#fff8', height:40, barWidth:2, barGap:1, barRadius:1,
+        });
+        ws.on('interaction', () => ws.playPause());
+        decks[deckId].stemWs[stem] = ws;
+        if(decks[deckId].bars.length) drawBarMarkers(ws, decks[deckId].bars);
+
+        // Region selection: click=start, shift+click=end
+        container.addEventListener('click', (e) => {
+            if (!ws.getDuration()) return;
+            const rect = container.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            const time = pct * ws.getDuration();
+
+            if (!decks[deckId].regions[stem]) decks[deckId].regions[stem] = {};
+            if (e.shiftKey) {
+                decks[deckId].regions[stem].end = time;
+            } else {
+                decks[deckId].regions[stem].start = time;
+                if (!decks[deckId].regions[stem].end) decks[deckId].regions[stem].end = ws.getDuration();
+            }
+            drawRegion(deckId, stem, container, ws.getDuration());
+            updateSelectedSummary();
+        });
+    });
+}
+
+function drawRegion(deckId, stem, container, duration) {
+    container.querySelectorAll('.region-overlay').forEach(r=>r.remove());
+    const reg = decks[deckId].regions[stem];
+    if (!reg || reg.start == null) return;
+    const s = Math.max(0, reg.start || 0);
+    const e = Math.min(duration, reg.end || duration);
+    const leftPct = (s / duration) * 100;
+    const widthPct = ((e - s) / duration) * 100;
+    const overlay = document.createElement('div');
+    overlay.className = 'region-overlay';
+    overlay.style.left = leftPct + '%';
+    overlay.style.width = widthPct + '%';
+    container.appendChild(overlay);
+    // Update info text
+    const info = document.querySelector(`.stem-region-info[data-deck="${deckId}"][data-stem="${stem}"]`);
+    if (info) info.textContent = `${s.toFixed(1)}s - ${e.toFixed(1)}s`;
+}
+
+function toggleStemPlay(deckId, stem, btn) {
+    const ws = decks[deckId].stemWs[stem]; if(!ws) return;
+    STEMS.forEach(s => { if(s!==stem && decks[deckId].stemWs[s]) decks[deckId].stemWs[s].pause(); });
+    document.getElementById(`deck-${deckId}`).querySelectorAll('.stem-play-btn').forEach(b => { b.classList.remove('playing'); b.innerHTML='&#9654;'; });
+    if(ws.isPlaying()) { ws.pause(); btn.innerHTML='&#9654;'; btn.classList.remove('playing'); }
+    else { ws.play(); btn.innerHTML='&#9646;&#9646;'; btn.classList.add('playing'); ws.on('finish',()=>{btn.innerHTML='&#9654;';btn.classList.remove('playing');}); }
+}
+
+// ---- BPM Change (updates stems) ----
+async function changeBpm(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const loaded = card.querySelector('.deck-loaded');
+    const newBpm = parseFloat(loaded.querySelector('.deck-new-bpm').value);
+    if (!decks[deckId].trackId || !newBpm || newBpm<60 || newBpm>200) { alert('BPM 60-200'); return; }
+    const btn = loaded.querySelector('.deck-change-bpm');
+    btn.disabled=true; btn.textContent='...';
+    loaded.querySelector('.deck-stems-status').textContent = 'Updating stems to new BPM...';
+    loaded.querySelector('.deck-stems-status').style.color = '#ffc107';
+    try {
+        const res = await fetch(`${API_K}/${decks[deckId].trackId}/change-bpm?targetBpm=${newBpm}`, { method:'POST' });
+        if(!res.ok) { alert('BPM change failed'); btn.disabled=false; btn.textContent='Set'; return; }
+        const data = await res.json();
+        loaded.querySelector('.deck-bpm').textContent = Math.round(newBpm);
+        decks[deckId].bpm = newBpm;
+        loaded.querySelector('.deck-stems-status').textContent = 'Stems updated';
+        loaded.querySelector('.deck-stems-status').style.color = '#4caf50';
+        // Reload stem waveforms with cache-bust
+        reloadStemWaveforms(deckId);
+        btn.disabled=false; btn.textContent='Set';
+    } catch(err) { alert(err.message); btn.disabled=false; btn.textContent='Set'; }
+}
+
+// ---- Key Change (updates stems) ----
+async function changeKey(deckId) {
+    const card = document.getElementById(`deck-${deckId}`);
+    const loaded = card.querySelector('.deck-loaded');
+    const newKey = loaded.querySelector('.deck-new-key').value;
+    if (!decks[deckId].trackId || !newKey) return;
+    const btn = loaded.querySelector('.deck-change-key');
+    btn.disabled=true; btn.textContent='...';
+    loaded.querySelector('.deck-stems-status').textContent = 'Updating stems to new key...';
+    loaded.querySelector('.deck-stems-status').style.color = '#ffc107';
+    try {
+        const res = await fetch(`${API_K}/${decks[deckId].trackId}/change-key?targetKey=${encodeURIComponent(newKey)}`, { method:'POST' });
+        if(!res.ok) { alert('Key change failed'); btn.disabled=false; btn.textContent='Set'; return; }
+        const data = await res.json();
+        loaded.querySelector('.deck-key').textContent = data.key;
+        decks[deckId].key = data.key;
+        loaded.querySelector('.deck-stems-status').textContent = 'Stems updated';
+        loaded.querySelector('.deck-stems-status').style.color = '#4caf50';
+        reloadStemWaveforms(deckId);
+        btn.disabled=false; btn.textContent='Set';
+    } catch(err) { alert(err.message); btn.disabled=false; btn.textContent='Set'; }
+}
+
+function reloadStemWaveforms(deckId) {
+    const tid = decks[deckId].trackId;
+    const bust = Date.now();
+    STEMS.forEach(stem => {
+        const ws = decks[deckId].stemWs[stem];
+        if (ws) ws.load(`${API_K}/${tid}/stem/${stem}?t=${bust}`);
+    });
+}
+
+// ---- Selected stems summary ----
+function updateSelectedSummary() {
+    const checks = document.querySelectorAll('.stem-check:checked');
+    const el = document.getElementById('selected-summary');
+    if (!checks.length) { el.textContent='No stems selected.'; el.style.color='#888'; return; }
+    const parts = [];
+    checks.forEach(cb => {
+        const d = cb.dataset.deck.toUpperCase();
+        const s = STEM_INFO[cb.dataset.stem].label;
+        const reg = decks[cb.dataset.deck].regions[cb.dataset.stem];
+        let info = `Deck ${d}: ${s}`;
+        if (reg && reg.start != null) info += ` [${reg.start.toFixed(1)}s-${(reg.end||0).toFixed(1)}s]`;
+        parts.push(info);
+    });
+    el.innerHTML = '<span style="color:#00e5ff;">' + parts.join(' | ') + '</span>';
+}
+
+// ---- MIX ----
+document.getElementById('btn-mix').addEventListener('click', async () => {
+    const checks = document.querySelectorAll('.stem-check:checked');
+    if (!checks.length) { alert('Select stems first.'); return; }
+    const btn = document.getElementById('btn-mix');
+    const statusDiv = document.getElementById('mix-status');
+    const statusBox = document.getElementById('mix-status-box');
+    const resultDiv = document.getElementById('mix-result');
+    btn.disabled=true; btn.textContent='Mixing...';
+    statusDiv.classList.remove('d-none'); resultDiv.classList.add('d-none');
+    statusBox.className='mx-status processing'; statusBox.textContent='Mixing selected stems...';
+
+    const selected = [];
+    checks.forEach(cb => {
+        const reg = decks[cb.dataset.deck].regions[cb.dataset.stem];
+        selected.push({
+            trackId: decks[cb.dataset.deck].trackId, stem: cb.dataset.stem,
+            startTime: reg?.start || null, endTime: reg?.end || null
+        });
+    });
+    const targetBpm = document.getElementById('mix-target-bpm').value;
+    const bars = document.getElementById('mix-bars').value;
+
+    try {
+        const res = await fetch(`${API_K}/mix`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ stems:selected, targetBpm: targetBpm?parseFloat(targetBpm):null, bars:parseInt(bars) })
+        });
+        if(!res.ok) { statusBox.className='mx-status failed'; statusBox.textContent='Error: '+await res.text(); btn.disabled=false; btn.textContent='MIX SELECTED STEMS'; return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        statusBox.className='mx-status completed'; statusBox.textContent='Mix complete!';
+        document.getElementById('mix-player').src=url; document.getElementById('mix-download').href=url;
+        resultDiv.classList.remove('d-none');
+        if(mixWs) mixWs.destroy();
+        mixWs = WaveSurfer.create({ container:'#mix-waveform', waveColor:'#ffd93d', progressColor:'#ffd93d44', cursorColor:'#fff', height:60, barWidth:2, barGap:1, barRadius:2 });
+        mixWs.loadBlob(blob);
+        btn.disabled=false; btn.textContent='MIX SELECTED STEMS';
+    } catch(err) { statusBox.className='mx-status failed'; statusBox.textContent=err.message; btn.disabled=false; btn.textContent='MIX SELECTED STEMS'; }
+});
+</script>
+}
