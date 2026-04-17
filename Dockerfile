@@ -17,9 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create venv and install Python deps
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Install PyTorch CPU-only (much smaller than CUDA version)
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Install demucs + audio deps
 COPY MixReady/scripts/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir librosa soundfile
+    pip install --no-cache-dir demucs
 
 WORKDIR /app
 COPY --from=build /app/publish .
