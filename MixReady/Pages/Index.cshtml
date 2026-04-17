@@ -770,9 +770,9 @@
                 statusBox.className = 'mx-status completed';
                 statusBox.textContent = data.message;
 
-                data.detectedBpm ? Math.round(data.detectedBpm) : '--';
-                data.detectedGenre || '--';
-                data.detectedKey || '--';
+                card.querySelector('.track-bpm').textContent = data.detectedBpm ? Math.round(data.detectedBpm) : '--';
+                card.querySelector('.track-det-genre').textContent = data.detectedGenre || '--';
+                card.querySelector('.track-key').textContent = data.detectedKey || '--';
                 card.querySelector('.track-result-info').classList.remove('d-none');
 
                 const downloadUrl = `${API}/${entry.trackId}/download`;
@@ -790,7 +790,7 @@
                 btn.disabled = false;
                 btn.textContent = 'Generate';
 
-                            } else if (data.status === 'Queued')
+            } else if (data.status === 'Queued') {
                 statusBox.className = 'mx-status queued';
                 statusBox.textContent = (data.message || 'In queue...');
 
