@@ -70,7 +70,12 @@ if (isWeb)
         app.UseHsts();
     }
 
-    app.UseHttpsRedirection();
+    // Only redirect to HTTPS in production (Docker QA runs HTTP)
+    if (app.Environment.IsProduction())
+    {
+        app.UseHttpsRedirection();
+    }
+
     app.UseStaticFiles();
 
     app.UseSwagger();
