@@ -11,13 +11,13 @@ namespace MixReady.Helpers;
 ///   1. Scan the entire track for the best 4-bar rhythmic section
 ///      (strong drums, regular beat, high energy, consistent bars)
 ///   2. Remove vocals from that section:
-///      - Demucs (AI): if Python + demucs installed �¢â�¬â� clean stem separation
+///      - Demucs (AI): if Python + demucs installed ??????? clean stem separation
 ///      - Biquad (C# fallback): notch out 300-3000 Hz vocal band
 ///   3. Beat-align to the downbeat
 ///   4. Loop for 8-16 bars with volume build
 ///   5. Smooth loop points to prevent clicks
 ///
-/// Result: the track's own groove �¢â�¬â� same kick, clap, hat, swing �¢â�¬â� no vocals.
+/// Result: the track's own groove ??????? same kick, clap, hat, swing ??????? no vocals.
 /// </summary>
 public static class GrooveExtractor
 {
@@ -81,7 +81,7 @@ public static class GrooveExtractor
     }
 
     // -----------------------------------------------------------------
-    // Vocal removal �¢â�¬â� operates on the FULL track
+    // Vocal removal ??????? operates on the FULL track
     // -----------------------------------------------------------------
 
     /// <summary>
@@ -410,7 +410,7 @@ public static class GrooveExtractor
 
         // --- Combine scores ---
         // Find the hardest-hitting, most consistent rhythmic section.
-        // Do NOT penalize vocals �¢â�¬â� the best groove sections always have vocals.
+        // Do NOT penalize vocals ??????? the best groove sections always have vocals.
         // Vocals get removed AFTER we pick the best section.
         return rms * 20.0 +
                beatRegularity * 35.0 +
@@ -466,7 +466,7 @@ public static class GrooveExtractor
             return section;
 
         // Find the strongest transient in the first beat-length of audio
-        // That's likely the downbeat �¢â�¬â� trim everything before it
+        // That's likely the downbeat ??????? trim everything before it
         var searchLen = Math.Min(samplesPerBeat, section.Length);
         var windowSize = Math.Max(1, sampleRate / 200) * channels; // 5ms windows
         double maxEnergy = 0;
@@ -496,7 +496,7 @@ public static class GrooveExtractor
 
     /// <summary>
     /// Build a full intro by looping the extracted section.
-    /// No fades or crossfades between repetitions �¢â�¬â� the section is beat-aligned
+    /// No fades or crossfades between repetitions ??????? the section is beat-aligned
     /// so the end flows naturally back into the start on the beat grid.
     /// </summary>
     private static float[] BuildLoop(float[] section, int samplesPerBar, int totalBars)
@@ -534,7 +534,7 @@ public static class GrooveExtractor
 
     /// <summary>
     /// Tiny fade at the very first samples to prevent a speaker pop on playback start.
-    /// No processing at loop boundaries �¢â�¬â� the beat alignment handles that.
+    /// No processing at loop boundaries ??????? the beat alignment handles that.
     /// </summary>
     private static void SmoothLoopPoints(float[] output, int loopLength, int sampleRate, int channels)
     {

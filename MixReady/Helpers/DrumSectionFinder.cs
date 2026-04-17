@@ -4,13 +4,13 @@ namespace MixReady.Helpers;
 /// Scans a full track to find the section with the strongest, cleanest drum pattern.
 /// 
 /// Analysis criteria (scored and combined):
-/// 1. Low-frequency energy ratio ÃÂ¢Ã¢âÂ¬Ã¢â¬ drums (kicks) live below 200 Hz; a drum-heavy
+/// 1. Low-frequency energy ratio ??????? drums (kicks) live below 200 Hz; a drum-heavy
 ///    section has a higher proportion of energy in the bass
-/// 2. Transient sharpness ÃÂ¢Ã¢âÂ¬Ã¢â¬ clean drums produce sharp spikes (high peak-to-RMS ratio)
+/// 2. Transient sharpness ??????? clean drums produce sharp spikes (high peak-to-RMS ratio)
 ///    while vocals/pads produce sustained energy
-/// 3. Beat regularity ÃÂ¢Ã¢âÂ¬Ã¢â¬ in a clean drum section, energy peaks recur at even intervals
+/// 3. Beat regularity ??????? in a clean drum section, energy peaks recur at even intervals
 ///    matching the detected BPM
-/// 4. Mid-frequency dip ÃÂ¢Ã¢âÂ¬Ã¢â¬ sections where vocals/melody dominate have strong 300ÃÂ¢Ã¢âÂ¬Ã¢â¬Å4000 Hz
+/// 4. Mid-frequency dip ??????? sections where vocals/melody dominate have strong 300????????4000 Hz
 ///    energy; drum-only sections have less
 /// 
 /// The entire track is searched (no arbitrary skipping) so the absolute best
@@ -132,14 +132,14 @@ public static class DrumSectionFinder
 
     /// <summary>
     /// Measure how regularly energy peaks align with the expected beat grid.
-    /// Returns 0ÃÂ¢Ã¢âÂ¬Ã¢â¬Å1 where 1 = perfect metronomic beat alignment.
+    /// Returns 0????????1 where 1 = perfect metronomic beat alignment.
     /// </summary>
     private static double MeasureBeatRegularity(double[] windowEnergies, double windowsPerBeat, double avgEnergy)
     {
         if (windowEnergies.Length < 4 || windowsPerBeat < 1)
             return 0;
 
-        // Find windows that are energy peaks (above 1.3ÃÆÃ¢â¬" average)
+        // Find windows that are energy peaks (above 1.3????" average)
         var threshold = avgEnergy * 1.3;
         var peakPositions = new List<int>();
 
@@ -158,14 +158,14 @@ public static class DrumSectionFinder
 
         // For each peak, check if the distance to the nearest other peak
         // is close to a multiple of the expected beat interval.
-        // Tolerance: ÃâÃÂ±15% of a beat
+        // Tolerance: ????15% of a beat
         var tolerance = windowsPerBeat * 0.15;
         int onBeatCount = 0;
 
         for (int i = 1; i < peakPositions.Count; i++)
         {
             var interval = peakPositions[i] - peakPositions[i - 1];
-            // Check if interval is close to 1ÃÆÃ¢â¬", 2ÃÆÃ¢â¬", or 0.5ÃÆÃ¢â¬" the beat
+            // Check if interval is close to 1????", 2????", or 0.5????" the beat
             var ratios = new[] { 0.5, 1.0, 2.0 };
             foreach (var r in ratios)
             {
@@ -202,7 +202,7 @@ public static class DrumSectionFinder
 
     /// <summary>
     /// Estimate energy within a frequency band using a simple bandpass approach.
-    /// Applies a high-pass then low-pass biquad filter and measures RMSÃâÃÂ².
+    /// Applies a high-pass then low-pass biquad filter and measures RMS????.
     /// </summary>
     private static double BandEnergy(float[] mono, int sampleRate, double lowHz, double highHz)
     {
