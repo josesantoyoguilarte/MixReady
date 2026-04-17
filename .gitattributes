@@ -1,0 +1,21 @@
+# Default: auto-detect, commit as LF
+* text=auto eol=lf
+
+# Windows-only files keep CRLF
+*.sln text eol=crlf
+*.csproj text eol=lf
+
+# Force LF for files that run on Linux
+*.py text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+.dockerignore text eol=lf
+
+# Binary files
+*.wav binary
+*.mp3 binary
+*.flac binary
+*.ogg binary
+*.aac binary
+*.pyc binary

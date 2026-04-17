@@ -1,5 +1,4 @@
 using Hangfire;
-using Hangfire;
 using Hangfire.Redis.StackExchange;
 using MixReady.Services;
 using StackExchange.Redis;

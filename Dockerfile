@@ -30,7 +30,11 @@ WORKDIR /app
 COPY --from=build /app/publish .
 COPY MixReady/scripts/ scripts/
 
+# Convert CRLF to LF in Python scripts (in case git didn't auto-convert)
+RUN find scripts/ -name "*.py" -exec sed -i 's/\r$//' {} +
+
 # Shared storage mount point
+ENV MIXREADY_STORAGE_ROOT=/app/storage
 RUN mkdir -p /app/storage/originals /app/storage/processed /app/storage/stems
 VOLUME ["/app/storage"]
 

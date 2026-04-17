@@ -1,5 +1,4 @@
 using NAudio.Wave;
-using NAudio.Wave;
 
 namespace MixReady.Helpers;
 
