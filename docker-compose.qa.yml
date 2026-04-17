@@ -53,9 +53,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Staging
       # Demucs model: "htdemucs" (best quality, slower) or "hdemucs_mmi" (faster, slightly less quality)
       - DEMUCS_MODEL=htdemucs
-      # Maximize CPU parallelism for PyTorch
-      - OMP_NUM_THREADS=8
-      - MKL_NUM_THREADS=8
+      # Maximize CPU parallelism for PyTorch (VM has 20 cores)
+      - OMP_NUM_THREADS=16
+      - MKL_NUM_THREADS=16
     volumes:
       - shared-storage:/app/storage
     depends_on:
@@ -64,8 +64,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12G
-          cpus: '8'
+          memory: 16G
+          cpus: '16'
 
 volumes:
   redis-data:
