@@ -41,7 +41,10 @@ dist/
 venv/
 env/
 
-# Audio files (don't commit uploads/processed tracks)
+# Audio files (don't commit uploads/processed tracks/stems)
+MixReady/Storage/originals/
+MixReady/Storage/processed/
+MixReady/Storage/stems/
 MixReady/storage/
 *.wav
 *.mp3
