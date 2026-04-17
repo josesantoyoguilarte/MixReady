@@ -51,6 +51,11 @@ services:
       - REDIS_CONNECTION=redis:6379
       - MIXREADY_WORKERS=2
       - ASPNETCORE_ENVIRONMENT=Staging
+      # Demucs model: "htdemucs" (best quality, slower) or "hdemucs_mmi" (faster, slightly less quality)
+      - DEMUCS_MODEL=htdemucs
+      # Use all CPU cores for PyTorch
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
     volumes:
       - shared-storage:/app/storage
     depends_on:
@@ -59,7 +64,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 6G
+          cpus: '4'
 
 volumes:
   redis-data:

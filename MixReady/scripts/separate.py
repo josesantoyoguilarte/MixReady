@@ -91,15 +91,22 @@ def save_wav(tensor, path, sample_rate):
     sf.write(path, data.T, sample_rate, subtype='FLOAT')
 
 
-def separate(file_path, output_dir):
+def separate(file_path, output_dir, model_name=None):
     """Separate a track into stems using demucs."""
     import torch
     from demucs.pretrained import get_model
     from demucs.apply import apply_model
 
+    # Use all available CPU cores
+    torch.set_num_threads(os.cpu_count() or 4)
+
     os.makedirs(output_dir, exist_ok=True)
 
-    model = get_model("htdemucs")
+    # Model selection: env var or argument or default
+    if not model_name:
+        model_name = os.environ.get("DEMUCS_MODEL", "htdemucs")
+
+    model = get_model(model_name)
     model.eval()
 
     # Load audio using our own loader (bypasses torchaudio)
@@ -109,9 +116,9 @@ def separate(file_path, output_dir):
     ref = wav.mean(0)
     wav = (wav - ref.mean()) / ref.std()
 
-    # Run the model
+    # Run the model with segment-based processing for lower memory usage
     with torch.no_grad():
-        sources = apply_model(model, wav[None], device="cpu")[0]
+        sources = apply_model(model, wav[None], device="cpu", split=True, overlap=0.25)[0]
 
     # Denormalize
     sources = sources * ref.std() + ref.mean()
