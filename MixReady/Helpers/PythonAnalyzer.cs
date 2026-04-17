@@ -8,7 +8,7 @@ namespace MixReady.Helpers;
 /// Bridges C# to the Python audio analysis pipeline.
 ///
 /// Python handles all audio/music analysis (BPM, key, beats, downbeats,
-/// structure) using librosa — the industry standard for MIR. C# handles
+/// structure) using librosa -- the industry standard for MIR. C# handles
 /// the web layer, drum synthesis, and audio mixing.
 ///
 /// Communication: C# calls Python via process, Python outputs JSON to stdout.

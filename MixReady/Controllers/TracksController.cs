@@ -60,7 +60,7 @@ public class TracksController : ControllerBase
     /// Trigger intro generation for a track.
     /// Optionally pass a genre to override auto-detection.
     /// Mode: "groove" (default) extracts the track's own drums, "synth" generates from scratch.
-    /// Bars: 4, 8, or 16 — how many bars to extract (default 8).
+    /// Bars: 4, 8, or 16 -- how many bars to extract (default 8).
     /// Loop: if true, loops the extracted section to double its length (e.g. 8 bars becomes 16).
     /// IntroOnly: if true, returns just the intro. If false (default), returns intro + song.
     /// SkipOriginalIntro: if true, the original song starts after its vocal intro (at the drop/chorus).
@@ -302,11 +302,11 @@ public class TracksController : ControllerBase
             ready,
             message = track.Status switch
             {
-                TrackStatus.Uploaded => "Ready — click Generate to start.",
+                TrackStatus.Uploaded => "Ready -- click Generate to start.",
                 TrackStatus.Queued => queuePosition > 0
-                    ? $"In queue (position {queuePosition + 1}) — {processingCount} track(s) processing, {queuedCount} queued."
-                    : $"In queue — will start shortly. {processingCount} track(s) processing.",
-                TrackStatus.Processing => "Processing — AI is removing vocals and extracting rhythm...",
+                    ? $"In queue (position {queuePosition + 1}) -- {processingCount} track(s) processing, {queuedCount} queued."
+                    : $"In queue -- will start shortly. {processingCount} track(s) processing.",
+                TrackStatus.Processing => "Processing -- AI is removing vocals and extracting rhythm...",
                 TrackStatus.Completed => "Done! Preview and download below.",
                 TrackStatus.Failed => $"Failed: {track.ErrorMessage}",
                 _ => ""

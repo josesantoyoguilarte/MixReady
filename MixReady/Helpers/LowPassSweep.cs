@@ -7,7 +7,7 @@ namespace MixReady.Helpers;
 /// gradually "opens up" to full frequency over the duration of the input.
 /// 
 /// Crucially, each block is gain-compensated so the perceived loudness stays
-/// constant throughout the sweep — the intro starts at the same volume as the
+/// constant throughout the sweep -- the intro starts at the same volume as the
 /// middle of the track. Only the frequency content changes, not the energy.
 /// </summary>
 public static class LowPassSweep
@@ -19,7 +19,7 @@ public static class LowPassSweep
     /// <param name="sampleRate">Sample rate.</param>
     /// <param name="channels">Number of channels.</param>
     /// <param name="startCutoffHz">Starting cutoff frequency (default 250 Hz).</param>
-    /// <param name="endCutoffHz">Ending cutoff frequency (default 18000 Hz — fully open).</param>
+    /// <param name="endCutoffHz">Ending cutoff frequency (default 18000 Hz -- fully open).</param>
     public static void Apply(
         float[] samples,
         int sampleRate,

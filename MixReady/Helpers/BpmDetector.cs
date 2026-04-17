@@ -6,12 +6,12 @@ namespace MixReady.Helpers;
 /// Detects BPM from an audio file using a multi-strategy approach:
 ///
 /// 1. Trims to the middle 70% to skip irregular intros/outros.
-/// 2. Filters to the percussive range (60–200 Hz) where kick/bass dominate,
+/// 2. Filters to the percussive range (60--200 Hz) where kick/bass dominate,
 ///    removing melodic and harmonic content that confuses tempo detection.
 /// 3. Computes an onset-strength signal from half-wave rectified spectral flux.
 /// 4. Runs autocorrelation on the onset signal.
 /// 5. Finds the FIRST significant peak in the autocorrelation (not the global
-///    max) — in music, the first significant peak in the autocorrelation of
+///    max) -- in music, the first significant peak in the autocorrelation of
 ///    an onset signal corresponds to the actual beat period, while later/higher
 ///    peaks are sub-harmonics (half-time, phrase-level patterns).
 /// 6. Uses parabolic interpolation for sub-frame accuracy.
@@ -61,7 +61,7 @@ public static class BpmDetector
 
         var samples = TrimToMiddle(allSamples);
 
-        // --- Filter to percussive/bass range (60–200 Hz) ---
+        // --- Filter to percussive/bass range (60--200 Hz) ---
         // This removes vocals, melodies, and high-freq content that create
         // false onset peaks, leaving primarily kick drum and bass hits.
         var percussive = BandPassFilter(samples, sampleRate, 60.0, 200.0);
@@ -86,7 +86,7 @@ public static class BpmDetector
 
         var bpm = CorrectOctaveErrors(rawBpm, onsetSignal, hopsPerSecond, genreRange);
 
-        // Return full precision — rounding introduces cumulative drift over many bars.
+        // Return full precision -- rounding introduces cumulative drift over many bars.
         // Example: 95.3 rounded to 95 drifts 80ms over 8 bars.
         return Math.Clamp(bpm, MinBpm, MaxBpm);
     }
@@ -269,7 +269,7 @@ public static class BpmDetector
                 correlations[lag] >= correlations[lag - 1] &&
                 correlations[lag] >= correlations[lag + 1])
             {
-                // Found the first significant peak — this is likely the beat period
+                // Found the first significant peak -- this is likely the beat period
                 var interpolatedLag = ParabolicInterpolation(correlations, lag, minLag, maxLag);
                 return 60.0 * hopsPerSecond / interpolatedLag;
             }
@@ -358,7 +358,7 @@ public static class BpmDetector
         // When the user explicitly provides a genre, we trust it completely.
         // Find the candidate in the genre's BPM range with the best correlation.
         // We do NOT require correlation > 0, because mean-centered autocorrelation
-        // can produce negative values at valid beat lags — the user told us the
+        // can produce negative values at valid beat lags -- the user told us the
         // genre, so we pick the best candidate in range regardless.
         if (genreRange.HasValue)
         {

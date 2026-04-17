@@ -347,7 +347,7 @@ public static class TrackAnalyzer
                 return w * windowSize;
         }
 
-        // No clear vocal entry found — return end of track (meaning "no vocals")
+        // No clear vocal entry found -- return end of track (meaning "no vocals")
         return mono.Length;
     }
 

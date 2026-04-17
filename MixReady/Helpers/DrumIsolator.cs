@@ -9,7 +9,7 @@ namespace MixReady.Helpers;
 /// Strategy:
 /// - Keep the low band (&lt;150 Hz) at full volume ? kick drums, sub-bass
 /// - Keep the high band (&gt;10 kHz) at full volume ? hi-hats, cymbals, shakers
-/// - Completely remove the mid band (150 Hz–10 kHz) ? vocals, melody, synths, snare body
+/// - Completely remove the mid band (150 Hz--10 kHz) ? vocals, melody, synths, snare body
 /// - Normalize the isolated output so its RMS matches the original section
 /// </summary>
 public static class DrumIsolator

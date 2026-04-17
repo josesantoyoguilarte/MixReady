@@ -4,7 +4,7 @@ namespace MixReady.Helpers;
 
 /// <summary>
 /// Detects the musical key (root note) of a track by analyzing the dominant
-/// pitch class in the sub-bass region (30–120 Hz).
+/// pitch class in the sub-bass region (30--120 Hz).
 ///
 /// This is specifically designed for tuning the 808 bass and kick drum in
 /// generated intros so they harmonize with the original track.
@@ -15,7 +15,7 @@ namespace MixReady.Helpers;
 /// 3. Measure energy at each of the 12 pitch classes (C, C#, D, ... B)
 ///    using a bank of narrow bandpass resonators in the sub-bass octave.
 /// 4. The pitch class with the most energy is the root note.
-/// 5. Return the sub-bass frequency for that note (octave 1, ~32–62 Hz).
+/// 5. Return the sub-bass frequency for that note (octave 1, ~32--62 Hz).
 /// </summary>
 public static class KeyDetector
 {
@@ -45,7 +45,7 @@ public static class KeyDetector
     /// <param name="filePath">Path to the audio file.</param>
     /// <returns>
     /// A tuple of (noteName, bassFrequency) where bassFrequency is in the
-    /// sub-bass octave (~32–62 Hz), suitable for tuning kick/808.
+    /// sub-bass octave (~32--62 Hz), suitable for tuning kick/808.
     /// </returns>
     public static (string NoteName, double BassFrequency) Detect(string filePath)
     {
@@ -73,14 +73,14 @@ public static class KeyDetector
 
         for (int pc = 0; pc < 12; pc++)
         {
-            var freq1 = PitchClasses[pc].FreqOctave1;       // Octave 1: 32–62 Hz
-            var freq2 = freq1 * 2.0;                          // Octave 2: 65–124 Hz
+            var freq1 = PitchClasses[pc].FreqOctave1;       // Octave 1: 32--62 Hz
+            var freq2 = freq1 * 2.0;                          // Octave 2: 65--124 Hz
 
             // Measure energy at both octaves (sub-bass + bass)
             var energy1 = MeasurePitchEnergy(mono, sampleRate, freq1);
             var energy2 = MeasurePitchEnergy(mono, sampleRate, freq2);
 
-            // Weight octave 1 (sub) more heavily — it's where the 808/kick lives
+            // Weight octave 1 (sub) more heavily -- it's where the 808/kick lives
             scores[pc] = energy1 * 1.5 + energy2;
         }
 
@@ -97,7 +97,7 @@ public static class KeyDetector
 
     /// <summary>
     /// Measures how much energy exists at a specific frequency using the
-    /// Goertzel algorithm — essentially a single-bin DFT. This is far more
+    /// Goertzel algorithm -- essentially a single-bin DFT. This is far more
     /// efficient than a full FFT when we only need 12 specific frequencies.
     /// </summary>
     private static double MeasurePitchEnergy(float[] mono, int sampleRate, double targetFreq)
@@ -122,7 +122,7 @@ public static class KeyDetector
     /// <summary>
     /// Goertzel algorithm: computes the magnitude of a single frequency bin.
     /// This is equivalent to computing one bin of a DFT but runs in O(N) with
-    /// constant memory — perfect for detecting specific pitch classes.
+    /// constant memory -- perfect for detecting specific pitch classes.
     /// </summary>
     private static double GoertzelMagnitude(float[] samples, int offset, int length, double targetFreq, int sampleRate)
     {

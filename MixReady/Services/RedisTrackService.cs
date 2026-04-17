@@ -6,7 +6,7 @@ namespace MixReady.Services;
 
 /// <summary>
 /// Redis-backed TrackService for multi-container QA/production deployments.
-/// Same interface as the in-memory TrackService — selected via MIXREADY_STORE=redis.
+/// Same interface as the in-memory TrackService -- selected via MIXREADY_STORE=redis.
 /// </summary>
 public class RedisTrackService : ITrackService
 {
