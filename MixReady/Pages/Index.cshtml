@@ -12,13 +12,13 @@
         <!-- Upload area -->
         <div class="mx-card mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">🎵 Upload Tracks</h4>
+                <h4 class="mb-0">&#127925; Upload Tracks</h4>
                 <span class="text-muted small" id="track-counter">0 / 5</span>
             </div>
             <div id="drop-zone" class="mx-drop">
-                <div class="icon">�"</div>
+                <div class="icon">&#128193;</div>
                 <p class="mt-2 mb-1">Drag & drop up to 5 tracks here</p>
-                <p class="text-muted small">or click to browse �?" MP3, WAV, FLAC, OGG, AAC (max 100 MB each)</p>
+                <p class="text-muted small">or click to browse -- MP3, WAV, FLAC, OGG, AAC (max 100 MB each)</p>
                 <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.aac" class="d-none" multiple />
             </div>
         </div>
@@ -38,7 +38,7 @@
                 <span class="track-number badge bg-info text-dark me-2">#1</span>
                 <span class="mx-filename track-name"></span>
             </div>
-            <button class="btn btn-sm btn-outline-danger btn-remove" title="Remove">�?*</button>
+            <button class="btn btn-sm btn-outline-danger btn-remove" title="Remove">&#10005;</button>
         </div>
 
         <!-- Original preview -->
@@ -166,7 +166,7 @@
                 </div>
             </div>
             <div class="text-end mt-2">
-                <button class="mx-btn btn-sm btn-generate">�? Generate</button>
+                <button class="mx-btn btn-sm btn-generate">Generate</button>
             </div>
         </div>
 
@@ -175,19 +175,19 @@
             <div class="mx-status track-status" data-role="status">Processing...</div>
             <div class="track-result-info d-none mt-2">
                 <div class="row text-center">
-                    <div class="col-4"><span class="text-muted small">BPM</span><br><strong class="track-bpm">�?"</strong></div>
-                    <div class="col-4"><span class="text-muted small">Genre</span><br><strong class="track-det-genre">�?"</strong></div>
-                    <div class="col-4"><span class="text-muted small">Key</span><br><strong class="track-key">�?"</strong></div>
+                    <strong class="track-bpm">--</strong>
+                    <strong class="track-det-genre">--</strong>
+                    <strong class="track-key">--</strong>
                 </div>
             </div>
         </div>
 
         <!-- Result -->
         <div class="track-result d-none mt-3">
-            <label class="small">🎧 Preview Result</label>
+            <label class="small">Preview Result</label>
             <audio controls class="mx-audio-player track-result-player"></audio>
             <div class="text-end mt-2">
-                <a href="#" class="mx-btn-outline btn-sm track-download" download>�? Download</a>
+                <a href="#" class="mx-btn-outline btn-sm track-download" download>Download</a>
             </div>
         </div>
     </div>
@@ -278,7 +278,7 @@
         const statusBox = card.querySelector('[data-role="status"]');
         statusArea.classList.remove('d-none');
         statusBox.className = 'mx-status processing';
-        statusBox.textContent = '�?� Uploading...';
+        statusBox.textContent = 'Uploading...';
         card.querySelector('.btn-generate').disabled = true;
 
         try {
@@ -286,7 +286,7 @@
             const data = await res.json();
             if (!res.ok) {
                 statusBox.className = 'mx-status failed';
-                statusBox.textContent = '�? Upload failed: ' + (data.error || 'Unknown error');
+                statusBox.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
                 return;
             }
             entry.trackId = data.trackId;
@@ -316,7 +316,7 @@
             entry.songStart = null;
             entry.clickMode = 'intro'; // 'intro' or 'song'
 
-            // Waveform click �?" behavior depends on mode
+            // Waveform click -- behavior depends on mode
             wfContainer.addEventListener('click', (e) => {
                 if (!entry.ws.getDuration()) return;
                 const rect = wfContainer.getBoundingClientRect();
@@ -359,7 +359,7 @@
                     info.style.color = '#ff9800';
                     wfContainer.style.cursor = 'crosshair';
                     wfContainer.style.outline = '2px solid #ff9800';
-                    hint.textContent = 'SONG START MODE �?" click on waveform to pick where the song begins';
+                    hint.textContent = 'SONG START MODE -- click on waveform to pick where the song begins';
                     hint.style.color = '#ff9800';
                 } else {
                     entry.clickMode = 'intro';
@@ -390,7 +390,7 @@
             autoSeparateStems(entry, card);
         } catch (err) {
             statusBox.className = 'mx-status failed';
-            statusBox.textContent = '�? Upload error: ' + err.message;
+            statusBox.textContent = 'Upload error: ' + err.message;
         }
     }
 
@@ -720,13 +720,13 @@
 
         const btn = card.querySelector('.btn-generate');
         btn.disabled = true;
-        btn.textContent = '� Starting...';
+        btn.textContent = 'Starting...';
 
         const statusArea = card.querySelector('.track-status-area');
         const statusBox = card.querySelector('[data-role="status"]');
         statusArea.classList.remove('d-none');
         statusBox.className = 'mx-status processing';
-        statusBox.textContent = '� Starting...';
+        statusBox.textContent = 'Starting...';
         card.querySelector('.track-result').classList.add('d-none');
         card.querySelector('.track-result-info').classList.add('d-none');
 
@@ -736,18 +736,18 @@
                 let errMsg = 'Failed';
                 try { const err = await res.json(); errMsg = err.error || errMsg; } catch {}
                 statusBox.className = 'mx-status failed';
-                statusBox.textContent = '�? ' + errMsg;
+                statusBox.textContent = errMsg;
                 btn.disabled = false;
-                btn.textContent = '�? Generate';
+                btn.textContent = 'Generate';
                 return;
             }
-            statusBox.textContent = '� Processing �?" AI is removing vocals...';
+            statusBox.textContent = 'Processing -- AI is removing vocals...';
             startTrackPolling(entry, card);
         } catch (err) {
             statusBox.className = 'mx-status failed';
-            statusBox.textContent = '�? Network error: ' + err.message;
+            statusBox.textContent = 'Network error: ' + err.message;
             btn.disabled = false;
-            btn.textContent = '�? Generate';
+            btn.textContent = 'Generate';
         }
     }
 
@@ -768,11 +768,11 @@
             if (data.ready) {
                 clearInterval(entry.pollTimer);
                 statusBox.className = 'mx-status completed';
-                statusBox.textContent = '�?... ' + data.message;
+                statusBox.textContent = data.message;
 
-                card.querySelector('.track-bpm').textContent = data.detectedBpm ? Math.round(data.detectedBpm) : '�?"';
-                card.querySelector('.track-det-genre').textContent = data.detectedGenre || '�?"';
-                card.querySelector('.track-key').textContent = data.detectedKey || '�?"';
+                data.detectedBpm ? Math.round(data.detectedBpm) : '--';
+                data.detectedGenre || '--';
+                data.detectedKey || '--';
                 card.querySelector('.track-result-info').classList.remove('d-none');
 
                 const downloadUrl = `${API}/${entry.trackId}/download`;
@@ -781,22 +781,22 @@
                 card.querySelector('.track-result').classList.remove('d-none');
 
                 btn.disabled = false;
-                btn.textContent = '�"? Re-generate';
+                btn.textContent = 'Re-generate';
 
             } else if (data.status === 'Failed') {
                 clearInterval(entry.pollTimer);
                 statusBox.className = 'mx-status failed';
-                statusBox.textContent = '�? ' + (data.message || 'Failed');
+                statusBox.textContent = (data.message || 'Failed');
                 btn.disabled = false;
-                btn.textContent = '�? Generate';
+                btn.textContent = 'Generate';
 
-            } else if (data.status === 'Queued') {
+                            } else if (data.status === 'Queued')
                 statusBox.className = 'mx-status queued';
-                statusBox.textContent = '�* ' + (data.message || 'In queue...');
+                statusBox.textContent = (data.message || 'In queue...');
 
             } else {
                 statusBox.className = 'mx-status processing';
-                statusBox.textContent = '� ' + (data.message || 'Processing...');
+                statusBox.textContent = (data.message || 'Processing...');
             }
         } catch (err) { }
     }
