@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install PyTorch CPU-only (much smaller than CUDA version)
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch CPU-only (must match versions to avoid ABI issues)
+RUN pip install --no-cache-dir torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 
 # Install demucs + audio deps
 COPY MixReady/scripts/requirements.txt /tmp/requirements.txt
@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
     pip install --no-cache-dir demucs
 
 # Pre-download the demucs model (optional - will download on first use if this fails)
-RUN python3 -c "from demucs.pretrained import get_model; get_model('htdemucs')" || echo "Model pre-download skipped, will download on first use"
+RUN python3 -c "from demucs.pretrained import get_model; get_model('htdemucs')" || echo "Model pre-download skipped"
 
 WORKDIR /app
 COPY --from=build /app/publish .
