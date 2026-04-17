@@ -5,9 +5,9 @@
 /// Uses 16th-note resolution (16 positions per bar) to accurately represent
 /// syncopated rhythms like dembow, cumbia shuffle, and clave patterns.
 /// This is essential because genres like reggaeton place hits BETWEEN
-/// the 8th-note grid — that's what creates the bounce.
+/// the 8th-note grid â€” that's what creates the bounce.
 ///
-/// All sounds are synthesized from scratch — no samples, no extraction, no noise.
+/// All sounds are synthesized from scratch â€” no samples, no extraction, no noise.
 /// </summary>
 public static class DrumPatternGenerator
 {
@@ -169,7 +169,7 @@ public static class DrumPatternGenerator
         //   - Strong kick anchors (not every beat, not random)
         //   - Double clap accent at beat 3 (the signature)
         //   - Off-beat clap hits for groove
-        //   - Consistent energy — loops cleanly
+        //   - Consistent energy â€” loops cleanly
         //   - NOT pure dembow (too clean) and NOT chaotic (too messy)
         //
         //  Pos:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
@@ -346,7 +346,7 @@ public static class DrumPatternGenerator
                 envelope = Math.Exp(-3.0 * decayT);
             }
 
-            // Higher amplitude — kick must dominate the mix
+            // Higher amplitude â€” kick must dominate the mix
             var sample = (float)(Math.Sin(phase) * envelope * intensity * 1.3);
             sample = Math.Clamp(sample, -1.0f, 1.0f);
             for (int ch = 0; ch < channels; ch++)
@@ -356,14 +356,14 @@ public static class DrumPatternGenerator
 
     /// <summary>
     /// Electronic clap for dembow: controlled brightness.
-    /// Layered noise bursts but NOT harsh — should sit behind the kick, not dominate.
+    /// Layered noise bursts but NOT harsh â€” should sit behind the kick, not dominate.
     /// </summary>
     private static void WriteSnare(float[] output, int startSample, int sampleRate, int channels, float intensity)
     {
-        var durationSamples = (int)(0.06 * sampleRate); // 60ms — shorter, snappier
+        var durationSamples = (int)(0.06 * sampleRate); // 60ms â€” shorter, snappier
         var rng = new Random(startSample);
 
-        // Two micro-bursts for clap texture (not three — less harsh)
+        // Two micro-bursts for clap texture (not three â€” less harsh)
         var microDelays = new[] { 0, (int)(0.012 * sampleRate) };
 
         foreach (var delay in microDelays)
@@ -378,10 +378,10 @@ public static class DrumPatternGenerator
 
                 var noise = (float)(layerRng.NextDouble() * 2.0 - 1.0);
 
-                // Moderate decay — not too harsh, not too soft
+                // Moderate decay â€” not too harsh, not too soft
                 var envelope = (float)Math.Exp(-12.0 * t);
 
-                // NO high-frequency click transient — that was adding cricket sound
+                // NO high-frequency click transient â€” that was adding cricket sound
                 var sample = noise * envelope * intensity * 0.25f;
                 for (int ch = 0; ch < channels; ch++)
                     output[idx + ch] += sample;
@@ -478,7 +478,7 @@ public static class DrumPatternGenerator
     ///   - Sustained sub-bass sine at the track's root note
     ///   - First ~50ms is DUCKED (silent) so the kick hits unobstructed
     ///   - Then swells in over ~30ms for a smooth pump effect
-    ///   - Tighter envelope than before — doesn't ring forever
+    ///   - Tighter envelope than before â€” doesn't ring forever
     ///
     /// Without sidechain, the 808 and kick collide and the kick loses impact.
     /// This is the #1 reason reggaeton intros sound soft.

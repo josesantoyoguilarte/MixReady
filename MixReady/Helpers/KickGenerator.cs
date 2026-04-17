@@ -46,7 +46,7 @@ public static class KickGenerator
     /// <summary>
     /// Writes a single synthesized kick drum hit into the output buffer.
     /// The kick is a sine wave that sweeps from a high frequency (~150 Hz) down to a
-    /// low thump (~50 Hz) with an exponential amplitude decay — classic 808-style kick.
+    /// low thump (~50 Hz) with an exponential amplitude decay â€” classic 808-style kick.
     /// </summary>
     private static void WriteSingleKick(
         float[] output,

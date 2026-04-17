@@ -8,9 +8,9 @@ namespace MixReady.Helpers;
 /// Classification is based on measurable audio features:
 /// - BPM range (each genre has a typical tempo range)
 /// - Bass weight (ratio of sub-200 Hz energy to total)
-/// - Mid presence (ratio of 300–4000 Hz vocal/melody band)
-/// - High presence (ratio of 8000+ Hz energy — hats, air, brightness)
-/// - Transient density (how many sharp hits per second — sparse vs. busy)
+/// - Mid presence (ratio of 300â€“4000 Hz vocal/melody band)
+/// - High presence (ratio of 8000+ Hz energy â€” hats, air, brightness)
+/// - Transient density (how many sharp hits per second â€” sparse vs. busy)
 /// - Beat regularity (how metronomic the rhythm is)
 /// - Dynamic range (difference between loud and quiet moments)
 ///
@@ -145,12 +145,12 @@ public static class GenreAnalyzer
     }
 
     // --- Genre scoring functions ---
-    // Each returns a 0–100 score based on how well the features match the genre profile.
+    // Each returns a 0â€“100 score based on how well the features match the genre profile.
 
     private static double ScoreHouse(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 118, 132) * 30;         // House: 118–132 BPM
+        s += BpmFit(f.Bpm, 118, 132) * 30;         // House: 118â€“132 BPM
         s += f.BeatRegularity * 25;                   // Very regular 4-on-the-floor
         s += f.BassWeight * 20;                       // Solid bass
         s += (1 - f.DynamicRange) * 15;               // Consistent energy (not too dynamic)
@@ -161,7 +161,7 @@ public static class GenreAnalyzer
     private static double ScoreTechno(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 125, 150) * 25;           // Techno: 125–150 BPM
+        s += BpmFit(f.Bpm, 125, 150) * 25;           // Techno: 125â€“150 BPM
         s += f.BeatRegularity * 30;                    // Very metronomic
         s += f.BassWeight * 20;                        // Heavy bass
         s += (1 - f.MidWeight) * 15;                   // Minimal vocals/melody
@@ -172,7 +172,7 @@ public static class GenreAnalyzer
     private static double ScoreDnB(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 160, 180) * 35;           // D&B: 160–180 BPM
+        s += BpmFit(f.Bpm, 160, 180) * 35;           // D&B: 160â€“180 BPM
         s += f.BassWeight * 25;                        // Heavy bass
         s += f.TransientDensity * 20;                  // Very busy breaks
         s += f.BeatRegularity * 10;                    // Moderate regularity (breakbeats)
@@ -183,7 +183,7 @@ public static class GenreAnalyzer
     private static double ScoreHipHop(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 75, 110) * 25;            // Hip-Hop: 75–110 BPM (tighter upper bound)
+        s += BpmFit(f.Bpm, 75, 110) * 25;            // Hip-Hop: 75â€“110 BPM (tighter upper bound)
         s += f.BassWeight * 25;                        // 808 bass heavy
         s += f.MidWeight * 15;                         // Vocals present
         s += (1 - f.TransientDensity) * 15;            // Sparse beats
@@ -195,7 +195,7 @@ public static class GenreAnalyzer
     private static double ScorePop(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 100, 130) * 25;           // Pop: wide range 100–130
+        s += BpmFit(f.Bpm, 100, 130) * 25;           // Pop: wide range 100â€“130
         s += f.MidWeight * 30;                         // Strong vocals/melody
         s += f.DynamicRange * 15;                      // Dynamic (verse/chorus contrast)
         s += (1 - f.BassWeight) * 10;                  // Moderate bass (not dominant)
@@ -207,7 +207,7 @@ public static class GenreAnalyzer
     private static double ScoreRnB(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 60, 100) * 30;            // R&B: 60–100 BPM (slow)
+        s += BpmFit(f.Bpm, 60, 100) * 30;            // R&B: 60â€“100 BPM (slow)
         s += f.MidWeight * 25;                         // Strong vocals
         s += f.BassWeight * 15;                        // Warm bass
         s += (1 - f.TransientDensity) * 15;            // Smooth, sparse
@@ -218,7 +218,7 @@ public static class GenreAnalyzer
     private static double ScoreReggaeton(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 88, 105) * 25;            // Reggaeton: 88–105 BPM
+        s += BpmFit(f.Bpm, 88, 105) * 25;            // Reggaeton: 88â€“105 BPM
         s += f.DembowScore * 30;                       // Dembow pattern is THE differentiator
         s += f.BassWeight * 20;                        // Heavy bass
         s += f.BeatRegularity * 10;                    // Regular pattern
@@ -228,7 +228,7 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Reparto: ~90–115 BPM, Cuban street genre derived from reggaeton/dembow.
+    /// Reparto: ~90â€“115 BPM, Cuban street genre derived from reggaeton/dembow.
     ///
     /// Key differentiators from reggaeton:
     /// - More broken/irregular rhythm (LOW beat regularity)
@@ -243,10 +243,10 @@ public static class GenreAnalyzer
     private static double ScoreReparto(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 90, 115) * 20;             // Reparto: 90–115 BPM (wider than reggaeton)
+        s += BpmFit(f.Bpm, 90, 115) * 20;             // Reparto: 90â€“115 BPM (wider than reggaeton)
         s += f.DembowScore * 20;                       // Still dembow-based
         s += f.BassWeight * 20;                        // Heavy distorted bass
-        s += (1 - f.BeatRegularity) * 15;              // IRREGULAR — broken beats, not clean loops
+        s += (1 - f.BeatRegularity) * 15;              // IRREGULAR â€” broken beats, not clean loops
         s += f.TransientDensity * 15;                  // Loud claps, distorted kicks, vocal chops
         s += f.DynamicRange * 10;                      // Sudden drops, beat switches
         return s;
@@ -255,7 +255,7 @@ public static class GenreAnalyzer
     private static double ScoreTrance(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 128, 145) * 25;           // Trance: 128–145 BPM
+        s += BpmFit(f.Bpm, 128, 145) * 25;           // Trance: 128â€“145 BPM
         s += f.BeatRegularity * 20;                    // Regular beat
         s += f.MidWeight * 20;                         // Melodic content
         s += f.HighWeight * 15;                        // Bright, airy
@@ -278,7 +278,7 @@ public static class GenreAnalyzer
     private static double ScoreDiscoFunk(AudioFeatures f)
     {
         double s = 0;
-        s += BpmFit(f.Bpm, 110, 130) * 25;           // Disco: 110–130 BPM
+        s += BpmFit(f.Bpm, 110, 130) * 25;           // Disco: 110â€“130 BPM
         s += f.MidWeight * 25;                         // Instruments + vocals
         s += f.BeatRegularity * 15;                    // Regular groove
         s += f.HighWeight * 15;                        // Bright hats/strings
@@ -288,13 +288,13 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Salsa: ~160–220 BPM (or ~80–110 counted in half-time), clave-driven,
+    /// Salsa: ~160â€“220 BPM (or ~80â€“110 counted in half-time), clave-driven,
     /// bright mids (brass/piano), syncopated, high percussion density.
     /// </summary>
     private static double ScoreSalsa(AudioFeatures f)
     {
         double s = 0;
-        // Salsa can be counted fast (160–220) or half-time (80–110)
+        // Salsa can be counted fast (160â€“220) or half-time (80â€“110)
         var bpmFit = Math.Max(BpmFit(f.Bpm, 160, 220), BpmFit(f.Bpm, 80, 110));
         s += bpmFit * 20;
         s += f.ClaveScore * 25;                        // Clave pattern is THE signature
@@ -306,23 +306,23 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Merengue: ~120–160 BPM, extremely steady driving pulse (güira/tambora),
+    /// Merengue: ~120â€“160 BPM, extremely steady driving pulse (gÃ¼ira/tambora),
     /// very high transient density, metronomic eighth-note feel.
     /// </summary>
     private static double ScoreMerengue(AudioFeatures f)
     {
         double s = 0;
         s += BpmFit(f.Bpm, 120, 160) * 20;
-        s += f.SteadyPulseScore * 25;                  // Steady güira eighth-notes
+        s += f.SteadyPulseScore * 25;                  // Steady gÃ¼ira eighth-notes
         s += f.TransientDensity * 20;                  // Very busy percussion
         s += f.BeatRegularity * 15;                    // Extremely regular
         s += f.MidWeight * 10;                         // Accordion/vocals present
-        s += f.HighWeight * 10;                        // Güira is bright/shimmery
+        s += f.HighWeight * 10;                        // GÃ¼ira is bright/shimmery
         return s;
     }
 
     /// <summary>
-    /// Bachata: ~125–145 BPM, bongo/güira pattern, strong guitar mids,
+    /// Bachata: ~125â€“145 BPM, bongo/gÃ¼ira pattern, strong guitar mids,
     /// moderate dynamics, distinctive syncopated feel.
     /// </summary>
     private static double ScoreBachata(AudioFeatures f)
@@ -340,7 +340,7 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Dembow: ~115–140 BPM, derived from dancehall/reggaeton but faster and more
+    /// Dembow: ~115â€“140 BPM, derived from dancehall/reggaeton but faster and more
     /// aggressive, very heavy bass, hard-hitting pattern, minimal melody.
     /// Distinct from reggaeton by higher tempo and less vocal melody.
     /// </summary>
@@ -357,9 +357,9 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Cumbia: ~80–110 BPM, signature offbeat shuffle (energy on "&" positions),
-    /// güiro/scraper rhythm, accordion/guitar mids, moderate bass, syncopated.
-    /// The key differentiator is the "swing" — offbeats are louder than downbeats.
+    /// Cumbia: ~80â€“110 BPM, signature offbeat shuffle (energy on "&" positions),
+    /// gÃ¼iro/scraper rhythm, accordion/guitar mids, moderate bass, syncopated.
+    /// The key differentiator is the "swing" â€” offbeats are louder than downbeats.
     /// </summary>
     private static double ScoreCumbia(AudioFeatures f)
     {
@@ -367,7 +367,7 @@ public static class GenreAnalyzer
         s += BpmFit(f.Bpm, 80, 110) * 20;
         s += f.CumbiaShuffleScore * 25;                // Offbeat shuffle is THE signature
         s += f.MidWeight * 20;                         // Accordion/guitar
-        s += f.HighWeight * 10;                        // Güiro scraper shimmer
+        s += f.HighWeight * 10;                        // GÃ¼iro scraper shimmer
         s += f.BassWeight * 10;                        // Moderate bass (tumbadora)
         s += f.TransientDensity * 10;                  // Moderate percussion
         s += (1 - f.DembowScore) * 5;                  // Not dembow
@@ -375,7 +375,7 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Vallenato: ~110–150 BPM, accordion-driven (strong mids), caja vallenata drum
+    /// Vallenato: ~110â€“150 BPM, accordion-driven (strong mids), caja vallenata drum
     /// with emphasis on beat 4, guacharaca scraper (bright highs), melodic.
     /// Faster than cumbia, less shuffled, more straight-ahead groove.
     /// </summary>
@@ -394,7 +394,7 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Returns 0–1 based on how well the BPM fits within the expected range.
+    /// Returns 0â€“1 based on how well the BPM fits within the expected range.
     /// 1.0 = dead center, tapering off outside the range.
     /// </summary>
     private static double BpmFit(double bpm, double low, double high)
@@ -434,7 +434,7 @@ public static class GenreAnalyzer
 
     /// <summary>
     /// Measures how many sharp transient peaks occur per second.
-    /// Returns 0–1 normalized (0 = very sparse, 1 = very busy).
+    /// Returns 0â€“1 normalized (0 = very sparse, 1 = very busy).
     /// </summary>
     private static double MeasureTransientDensity(float[] mono, int sampleRate)
     {
@@ -479,7 +479,7 @@ public static class GenreAnalyzer
 
     /// <summary>
     /// Measures how regularly energy peaks align with the beat grid.
-    /// Returns 0–1 (1 = perfectly metronomic).
+    /// Returns 0â€“1 (1 = perfectly metronomic).
     /// </summary>
     private static double MeasureBeatRegularity(float[] mono, int sampleRate, double bpm)
     {
@@ -539,7 +539,7 @@ public static class GenreAnalyzer
 
     /// <summary>
     /// Measures dynamic range: difference between loud and quiet sections.
-    /// Returns 0–1 (0 = constant loudness, 1 = extreme variation).
+    /// Returns 0â€“1 (0 = constant loudness, 1 = extreme variation).
     /// </summary>
     private static double MeasureDynamicRange(float[] mono, int sampleRate)
     {
@@ -584,7 +584,7 @@ public static class GenreAnalyzer
     /// 
     /// We check if energy peaks consistently land at positions 1, 3, 4 (kick)
     /// and 2&amp;, 4&amp; (snare) within each bar across the track.
-    /// Returns 0–1 (1 = strong dembow pattern).
+    /// Returns 0â€“1 (1 = strong dembow pattern).
     /// </summary>
     private static double MeasureDembowPattern(float[] mono, int sampleRate, double bpm)
     {
@@ -655,7 +655,7 @@ public static class GenreAnalyzer
     /// 
     /// The 2-3 son clave is the reverse (bar 2 first, bar 1 second).
     /// We check both and take the better match.
-    /// Returns 0–1 (1 = strong clave pattern).
+    /// Returns 0â€“1 (1 = strong clave pattern).
     /// </summary>
     private static double MeasureClavePattern(float[] mono, int sampleRate, double bpm)
     {
@@ -723,9 +723,9 @@ public static class GenreAnalyzer
 
     /// <summary>
     /// Detects a steady eighth-note pulse characteristic of merengue.
-    /// Merengue has a constant güira/tambora pattern where almost every
+    /// Merengue has a constant gÃ¼ira/tambora pattern where almost every
     /// eighth-note position has energy, creating a driving, relentless feel.
-    /// Returns 0–1 (1 = every eighth-note has a consistent hit).
+    /// Returns 0â€“1 (1 = every eighth-note has a consistent hit).
     /// </summary>
     private static double MeasureSteadyEighthPulse(float[] mono, int sampleRate, double bpm)
     {
@@ -782,7 +782,7 @@ public static class GenreAnalyzer
     }
 
     /// <summary>
-    /// Detects the cumbia shuffle pattern — offbeat emphasis.
+    /// Detects the cumbia shuffle pattern â€” offbeat emphasis.
     /// 
     /// In cumbia, the "&" (offbeat) eighth-note positions carry more energy
     /// than the downbeat positions, creating the characteristic swing/shuffle.
@@ -794,7 +794,7 @@ public static class GenreAnalyzer
     ///   Offbeats:  1, 3, 5, 7
     /// 
     /// Cumbia has offbeat energy ? downbeat energy.
-    /// Returns 0–1 (1 = strong offbeat-dominant shuffle).
+    /// Returns 0â€“1 (1 = strong offbeat-dominant shuffle).
     /// </summary>
     private static double MeasureCumbiaShuffle(float[] mono, int sampleRate, double bpm)
     {
@@ -844,7 +844,7 @@ public static class GenreAnalyzer
             if (offEnergy > downEnergy * 0.9)
             {
                 // Also check that beats 2 and 4 (positions 2, 6) or their offbeats
-                // (positions 3, 7) are emphasized — the "backbeat" feel
+                // (positions 3, 7) are emphasized â€” the "backbeat" feel
                 var backbeatEnergy = eighthEnergies[3] + eighthEnergies[7];
                 var frontbeatEnergy = eighthEnergies[0] + eighthEnergies[4];
 

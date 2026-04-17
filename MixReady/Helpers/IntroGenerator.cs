@@ -19,7 +19,7 @@ public static class IntroGenerator
     /// Two modes:
     ///   useGrooveExtraction=true  (default): Extract the track's own drum groove,
     ///     isolate it, reinforce kick/clap, loop it, add riser. Result sounds like
-    ///     the same track — same swing, same sound design, pro DJ edit quality.
+    ///     the same track â€” same swing, same sound design, pro DJ edit quality.
     ///   
     ///   useGrooveExtraction=false: Synthesize drums from scratch using the
     ///     genre-specific pattern engine. Generic but works for any track.
@@ -131,12 +131,12 @@ public static class IntroGenerator
             }
             else if (skipOriginalIntro)
             {
-                // Skip intro, no explicit song start — use recommended point
+                // Skip intro, no explicit song start â€” use recommended point
                 crossfadeStartSample = (int)(crossfadeStartSeconds * format.SampleRate) * format.Channels;
             }
             else
             {
-                // Keep the full original song — crossfade at the very beginning
+                // Keep the full original song â€” crossfade at the very beginning
                 crossfadeStartSample = 0;
             }
 
