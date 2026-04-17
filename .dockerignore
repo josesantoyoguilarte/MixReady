@@ -1,10 +1,11 @@
 **/.vs
+**/.vs
 **/bin
 **/obj
-**/storage
-**/.git
 **/node_modules
 **/__pycache__
 **/*.pyc
 **/*.user
 **/*.suo
+.git
+MixReady/storage/
