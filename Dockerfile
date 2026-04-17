@@ -4,10 +4,10 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY MixReady.sln .
 COPY MixReady/MixReady.csproj MixReady/
-RUN dotnet restore MixReady/MixReady.csproj
+RUN dotnet restore MixReady/MixReady.csproj -v minimal
 COPY MixReady/ MixReady/
 WORKDIR /src/MixReady
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish -c Release -o /app/publish --no-restore
 
 # ---- Runtime stage ----
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
