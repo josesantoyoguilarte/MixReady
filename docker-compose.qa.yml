@@ -6,7 +6,7 @@
 #   docker compose -f docker-compose.qa.yml up -d
 #   docker compose -f docker-compose.qa.yml up -d --scale worker=2
 #
-# Local dev is NOT affected — just run the project in Visual Studio as usual.
+# Local dev is NOT affected - just run the project in Visual Studio as usual.
 
 services:
 

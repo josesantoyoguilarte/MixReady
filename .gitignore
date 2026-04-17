@@ -4,6 +4,8 @@
 *.suo
 *.userosscache
 *.sln.docstates
+__pycache__/
+*.pyc
 
 # Build results
 [Dd]ebug/
