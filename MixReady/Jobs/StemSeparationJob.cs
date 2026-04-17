@@ -64,6 +64,7 @@ public class StemSeparationJob
 
             log.AppendLine($"Exit code: {(process.HasExited ? process.ExitCode.ToString() : "TIMEOUT")}");
             log.AppendLine($"Stdout: {stdout}");
+            log.AppendLine($"Stderr: {stderr}");
 
             if (!process.HasExited || process.ExitCode != 0)
             {

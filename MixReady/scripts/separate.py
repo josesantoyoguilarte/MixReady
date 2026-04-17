@@ -96,9 +96,14 @@ def separate(file_path, output_dir, model_name=None):
     import torch
     from demucs.pretrained import get_model
     from demucs.apply import apply_model
+    import time
 
-    # Use all available CPU cores
-    torch.set_num_threads(os.cpu_count() or 4)
+    # Use all available CPU cores for PyTorch
+    num_threads = int(os.environ.get("OMP_NUM_THREADS", os.cpu_count() or 4))
+    torch.set_num_threads(num_threads)
+    torch.set_num_interop_threads(min(4, num_threads))
+
+    print(f"[demucs] Threads: {num_threads}, CPU count: {os.cpu_count()}", file=sys.stderr)
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -106,19 +111,28 @@ def separate(file_path, output_dir, model_name=None):
     if not model_name:
         model_name = os.environ.get("DEMUCS_MODEL", "htdemucs")
 
+    print(f"[demucs] Loading model: {model_name}", file=sys.stderr)
+    t0 = time.time()
     model = get_model(model_name)
     model.eval()
+    print(f"[demucs] Model loaded in {time.time()-t0:.1f}s", file=sys.stderr)
 
     # Load audio using our own loader (bypasses torchaudio)
     wav, sr = load_audio(file_path, target_sr=model.samplerate, channels=model.audio_channels)
+    duration = wav.shape[-1] / sr
+    print(f"[demucs] Audio: {duration:.1f}s, {sr}Hz", file=sys.stderr)
 
     # Normalize
     ref = wav.mean(0)
     wav = (wav - ref.mean()) / ref.std()
 
     # Run the model with segment-based processing for lower memory usage
+    print(f"[demucs] Separating...", file=sys.stderr)
+    t1 = time.time()
     with torch.no_grad():
         sources = apply_model(model, wav[None], device="cpu", split=True, overlap=0.25)[0]
+    elapsed = time.time() - t1
+    print(f"[demucs] Separation done in {elapsed:.1f}s ({elapsed/duration:.1f}x realtime)", file=sys.stderr)
 
     # Denormalize
     sources = sources * ref.std() + ref.mean()
