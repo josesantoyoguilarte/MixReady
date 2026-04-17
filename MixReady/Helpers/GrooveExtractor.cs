@@ -243,6 +243,11 @@ public static class GrooveExtractor
     /// <summary>Find Python executable directly (no async, no cache dependency).</summary>
     private static string? FindPythonDirect()
     {
+        // Docker / Linux paths first
+        foreach (var p in new[] { "/opt/venv/bin/python3", "/usr/bin/python3" })
+            if (File.Exists(p)) return p;
+
+        // Windows local dev paths
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         foreach (var ver in new[] { "Python313", "Python312", "Python311", "Python310", "Python39" })
         {

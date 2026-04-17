@@ -1,0 +1,66 @@
+# docker-compose.qa.yml
+# Multi-container QA deployment for MixReady
+#
+# Usage:
+#   docker compose -f docker-compose.qa.yml build
+#   docker compose -f docker-compose.qa.yml up -d
+#   docker compose -f docker-compose.qa.yml up -d --scale worker=2
+#
+# Local dev is NOT affected — just run the project in Visual Studio as usual.
+
+services:
+
+  # --- Redis: shared queue + track state ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  # --- Web: serves Razor Pages + API, enqueues jobs ---
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - MIXREADY_MODE=web
+      - MIXREADY_STORE=redis
+      - REDIS_CONNECTION=redis:6379
+      - ASPNETCORE_ENVIRONMENT=Staging
+    volumes:
+      - shared-storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # --- Worker: runs Hangfire jobs (demucs, analyze, BPM/key changes) ---
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MIXREADY_MODE=worker
+      - MIXREADY_STORE=redis
+      - REDIS_CONNECTION=redis:6379
+      - MIXREADY_WORKERS=2
+      - ASPNETCORE_ENVIRONMENT=Staging
+    volumes:
+      - shared-storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+volumes:
+  redis-data:
+  shared-storage:

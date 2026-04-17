@@ -246,6 +246,16 @@ public static class PythonAnalyzer
         if (_cachedPythonPath != null)
             return _cachedPythonPath;
 
+        // 0. Docker / Linux venv path (QA containers)
+        foreach (var p in new[] { "/opt/venv/bin/python3", "/usr/bin/python3" })
+        {
+            if (File.Exists(p) && TryRunPython(p))
+            {
+                _cachedPythonPath = p;
+                return p;
+            }
+        }
+
         // 1. Check known user-install locations FIRST
         //    This avoids the Windows Store python.exe alias which hangs or fails.
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

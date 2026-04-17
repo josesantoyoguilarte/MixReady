@@ -1,49 +1,88 @@
 using Hangfire;
+using Hangfire;
+using Hangfire.Redis.StackExchange;
 using MixReady.Services;
 using MixReady.Storage;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// --- Environment-based configuration ---
+// MIXREADY_MODE: "web" | "worker" | unset (local dev = monolith, both web+worker)
+// MIXREADY_STORE: "redis" | unset (local dev = in-memory)
+// REDIS_CONNECTION: Redis connection string (required when MIXREADY_STORE=redis)
 
-// Hangfire — limit to 2 concurrent workers (demucs is CPU/RAM heavy)
-builder.Services.AddHangfire(config =>
-    config.UseInMemoryStorage());
-builder.Services.AddHangfireServer(options =>
+var mode = Environment.GetEnvironmentVariable("MIXREADY_MODE") ?? "local";
+var store = Environment.GetEnvironmentVariable("MIXREADY_STORE") ?? "memory";
+var redisConn = Environment.GetEnvironmentVariable("REDIS_CONNECTION") ?? "localhost:6379";
+var isWeb = mode is "web" or "local";
+var isWorker = mode is "worker" or "local";
+
+// --- Web services (only if serving HTTP) ---
+if (isWeb)
 {
-    options.WorkerCount = 2;
-});
+    builder.Services.AddRazorPages();
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+}
 
-// Application services
-builder.Services.AddSingleton<ITrackService, TrackService>();
+// --- Hangfire ---
+if (store == "redis")
+{
+    builder.Services.AddSingleton<IConnectionMultiplexer>(
+        ConnectionMultiplexer.Connect(redisConn));
+    builder.Services.AddHangfire(config => config.UseRedisStorage(redisConn));
+}
+else
+{
+    builder.Services.AddHangfire(config => config.UseInMemoryStorage());
+}
+
+if (isWorker)
+{
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = int.TryParse(
+            Environment.GetEnvironmentVariable("MIXREADY_WORKERS"), out var w) ? w : 2;
+    });
+}
+
+// --- Application services ---
+if (store == "redis")
+{
+    builder.Services.AddSingleton<ITrackService, RedisTrackService>();
+}
+else
+{
+    builder.Services.AddSingleton<ITrackService, TrackService>();
+}
+
 builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// --- Pipeline (only if serving HTTP) ---
+if (isWeb)
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Error");
+        app.UseHsts();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseStaticFiles();
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+    app.UseRouting();
+    app.UseAuthorization();
+
+    app.MapRazorPages();
+    app.MapControllers();
+    app.MapHangfireDashboard();
 }
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.UseRouting();
-
-app.UseAuthorization();
-
-app.MapRazorPages();
-app.MapControllers();
-app.MapHangfireDashboard();
 
 app.Run();

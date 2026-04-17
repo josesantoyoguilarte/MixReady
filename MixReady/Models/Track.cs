@@ -1,4 +1,5 @@
 namespace MixReady.Models;
+using System.Text.Json.Serialization;
 
 public enum TrackStatus
 {
@@ -24,6 +25,9 @@ public class Track
     public DateTime? QueuedAt { get; set; }
     public string? StemsDirectory { get; set; }
     public string? StemsError { get; set; }
+
+    [JsonIgnore]
     public bool StemsReady => !string.IsNullOrEmpty(StemsDirectory) && Directory.Exists(StemsDirectory);
+
     public bool StemsSeparating { get; set; }
 }
