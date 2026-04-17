@@ -26,8 +26,8 @@ COPY MixReady/scripts/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
     pip install --no-cache-dir demucs
 
-# Pre-download the demucs model so it's cached in the image
-RUN python3 -c "from demucs.pretrained import get_model; get_model('htdemucs')"
+# Pre-download the demucs model (optional - will download on first use if this fails)
+RUN python3 -c "from demucs.pretrained import get_model; get_model('htdemucs')" || echo "Model pre-download skipped, will download on first use"
 
 WORKDIR /app
 COPY --from=build /app/publish .
