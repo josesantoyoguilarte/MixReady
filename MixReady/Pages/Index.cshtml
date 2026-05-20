@@ -316,20 +316,17 @@
             entry.songStart = null;
             entry.clickMode = 'intro'; // 'intro' or 'song'
 
-            // Waveform click -- behavior depends on mode
-            wfContainer.addEventListener('click', (e) => {
+            // Waveform click -- use WaveSurfer's 'click' event for accurate time
+            entry.ws.on('click', (relativeX) => {
                 if (!entry.ws.getDuration()) return;
-                const rect = wfContainer.getBoundingClientRect();
-                const pct = (e.clientX - rect.left) / rect.width;
-                const time = pct * entry.ws.getDuration();
-                const snapped = snapToBar(time, entry.bars);
+                const time = relativeX * entry.ws.getDuration();
 
                 if (entry.clickMode === 'song') {
-                    entry.songStart = snapped;
-                    const barNum = findBarNumber(snapped, entry.bars);
+                    entry.songStart = time;
+                    const barNum = findBarNumber(time, entry.bars);
                     const info = card.querySelector('.track-song-start-info');
                     info.classList.remove('d-none');
-                    info.textContent = `Song starts at bar ${barNum || '?'} (${formatTime(snapped)})`;
+                    info.textContent = `Song starts at bar ${barNum || '?'} (${formatTime(time)})`;
                     drawAllRegions(entry, card);
 
                     // Switch back to intro mode after picking
@@ -340,9 +337,9 @@
                     hint.textContent = 'Click on waveform to set intro extraction start';
                     hint.style.color = '#555';
                 } else {
-                    entry.region.start = snapped;
+                    entry.region.start = time;
                     const barsCount = parseInt(card.querySelector('.track-bars:checked')?.value || '8');
-                    entry.region.end = calcRegionEnd(snapped, barsCount, entry.bars, entry.ws.getDuration());
+                    entry.region.end = calcRegionEnd(time, barsCount, entry.bars, entry.ws.getDuration());
                     drawAllRegions(entry, card);
                 }
             });

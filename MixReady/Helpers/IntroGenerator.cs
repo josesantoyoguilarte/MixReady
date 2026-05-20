@@ -126,8 +126,9 @@ public static class IntroGenerator
             int crossfadeStartSample;
             if (songStartSeconds.HasValue)
             {
-                // User explicitly set where the song should start
-                crossfadeStartSample = (int)(songStartSeconds.Value * format.SampleRate) * format.Channels;
+                // User explicitly set where the song should start -- snap to nearest beat
+                var snappedSongStart = SnapToBeat(songStartSeconds.Value, bpm);
+                crossfadeStartSample = (int)(snappedSongStart * format.SampleRate) * format.Channels;
             }
             else if (skipOriginalIntro)
             {
@@ -322,8 +323,10 @@ public static class IntroGenerator
         int regionStartSample, regionLength;
         if (regionStartSeconds.HasValue && regionEndSeconds.HasValue && regionEndSeconds > regionStartSeconds)
         {
-            regionStartSample = (int)(regionStartSeconds.Value * sampleRate) * channels;
-            var regionEndSample = (int)(regionEndSeconds.Value * sampleRate) * channels;
+            var snappedStart = SnapToBeat(regionStartSeconds.Value, bpm);
+            var snappedEnd = SnapToBeat(regionEndSeconds.Value, bpm);
+            regionStartSample = (int)(snappedStart * sampleRate) * channels;
+            var regionEndSample = (int)(snappedEnd * sampleRate) * channels;
             regionLength = regionEndSample - regionStartSample;
         }
         else
@@ -406,7 +409,15 @@ public static class IntroGenerator
         return buffer[..totalRead];
     }
 
-    private static float[] CombineWithCrossfadeAtPosition(
+     /// <summary>Snap a time value to the nearest beat boundary for the given BPM.</summary>
+    private static double SnapToBeat(double timeSeconds, double bpm)
+    {
+        var secondsPerBeat = 60.0 / bpm;
+        var beatIndex = Math.Round(timeSeconds / secondsPerBeat);
+        return beatIndex * secondsPerBeat;
+    }
+
+     private static float[] CombineWithCrossfadeAtPosition(
         float[] drumIntro,
         float[] original,
         int sampleRate,
