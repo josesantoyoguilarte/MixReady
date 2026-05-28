@@ -356,7 +356,7 @@ public class TracksController : ControllerBase
             return NotFound("Processed file not available yet.");
 
         var fileBytes = System.IO.File.ReadAllBytes(track.ProcessedFilePath);
-        return File(fileBytes, "audio/wav", $"{Path.GetFileNameWithoutExtension(track.OriginalFileName)}_intro.wav");
+        return File(fileBytes, "audio/wav", $"{Path.GetFileNameWithoutExtension(track.OriginalFileName)}_MixReady.wav");
     }
 
     /// <summary>
