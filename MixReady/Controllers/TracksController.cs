@@ -76,7 +76,9 @@ public class TracksController : ControllerBase
         [FromQuery] string? stems = null,
         [FromQuery] double? regionStart = null,
         [FromQuery] double? regionEnd = null,
-        [FromQuery] double? songStart = null)
+        [FromQuery] double? songStart = null,
+        [FromQuery] string transition = "crossfade",
+        [FromQuery] int transitionBars = 2)
     {
         var track = _trackService.GetById(id);
         if (track == null)
@@ -84,6 +86,22 @@ public class TracksController : ControllerBase
 
         if (bars != 4 && bars != 8 && bars != 16)
             return BadRequest(new { error = "bars must be 4, 8, or 16." });
+
+        var allowedTransitions = new[]
+        {
+            "none", "crossfade", "lowpass-sweep", "highpass-sweep",
+            "riser-noise", "downlifter", "echo-tail", "volume-fade", "slam-cut"
+        };
+        if (!allowedTransitions.Contains(transition, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest(new
+            {
+                error = $"Unsupported transition '{transition}'.",
+                supportedTransitions = allowedTransitions
+            });
+        }
+        if (transitionBars < 0 || transitionBars > 16)
+            return BadRequest(new { error = "transitionBars must be between 0 and 16." });
 
         if (!string.IsNullOrWhiteSpace(genre) &&
             !GenreAnalyzer.SupportedGenres.Contains(genre, StringComparer.OrdinalIgnoreCase))
@@ -100,9 +118,16 @@ public class TracksController : ControllerBase
         // Mark as Queued immediately so the UI knows it's pending
         _trackService.SetStatus(id, TrackStatus.Queued);
 
-        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job => job.Execute(id, genre, useGroove, bars, loop, introOnly, skipOriginalIntro, stems, regionStart, regionEnd, songStart));
+        var jobId = _backgroundJobClient.Enqueue<IntroGenerationJob>(job =>
+            job.Execute(id, genre, useGroove, bars, loop, introOnly, skipOriginalIntro,
+                        stems, regionStart, regionEnd, songStart, transition, transitionBars));
 
-        return Ok(new { jobId, mode = useGroove ? "groove" : "synth", bars, loop, introOnly, skipOriginalIntro, stems, regionStart, regionEnd, songStart });
+        return Ok(new
+        {
+            jobId, mode = useGroove ? "groove" : "synth", bars, loop, introOnly,
+            skipOriginalIntro, stems, regionStart, regionEnd, songStart,
+            transition, transitionBars
+        });
     }
 
     /// <summary>

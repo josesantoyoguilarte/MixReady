@@ -15,7 +15,7 @@ public class IntroGenerationJob
         _fileStorageService = fileStorageService;
     }
 
-    public Task Execute(Guid trackId, string? genreOverride = null, bool useGrooveExtraction = true, int extractBars = 8, bool loop = false, bool introOnly = false, bool skipOriginalIntro = false, string? stems = null, double? regionStart = null, double? regionEnd = null, double? songStart = null)
+    public Task Execute(Guid trackId, string? genreOverride = null, bool useGrooveExtraction = true, int extractBars = 8, bool loop = false, bool introOnly = false, bool skipOriginalIntro = false, string? stems = null, double? regionStart = null, double? regionEnd = null, double? songStart = null, string transition = "crossfade", int transitionBars = 2)
     {
         var track = _trackService.GetById(trackId)
             ?? throw new InvalidOperationException($"Track {trackId} not found.");
@@ -39,7 +39,9 @@ public class IntroGenerationJob
                 selectedStems: selectedStems,
                 regionStartSeconds: regionStart,
                 regionEndSeconds: regionEnd,
-                songStartSeconds: songStart);
+                songStartSeconds: songStart,
+                transition: transition,
+                transitionBars: transitionBars);
 
             _trackService.SetBpm(trackId, detectedBpm);
             _trackService.SetGenre(trackId, detectedGenre);

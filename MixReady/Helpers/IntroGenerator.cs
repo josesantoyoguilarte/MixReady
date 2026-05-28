@@ -39,7 +39,9 @@ public static class IntroGenerator
         string[]? selectedStems = null,
         double? regionStartSeconds = null,
         double? regionEndSeconds = null,
-        double? songStartSeconds = null)
+        double? songStartSeconds = null,
+        string transition = "crossfade",
+        int transitionBars = 2)
     {
         // Step 1: Analyze the track
         var analysis = AnalyzeTrack(inputPath, genreOverride);
@@ -121,7 +123,13 @@ public static class IntroGenerator
         else
         {
             var secondsPerBar = (60.0 / bpm) * 4;
-            var crossfadeSeconds = secondsPerBar * crossfadeBars;
+            // Allow the chosen transition's length to drive the crossfade region length.
+            // For "none" / "slam-cut" we use 0 bars (hard cut).
+            var effectiveTransitionBars = transition.Equals("none", StringComparison.OrdinalIgnoreCase)
+                                       || transition.Equals("slam-cut", StringComparison.OrdinalIgnoreCase)
+                ? 0
+                : Math.Max(0, transitionBars);
+            var crossfadeSeconds = secondsPerBar * effectiveTransitionBars;
 
             int crossfadeStartSample;
             if (songStartSeconds.HasValue)
@@ -141,12 +149,15 @@ public static class IntroGenerator
                 crossfadeStartSample = 0;
             }
 
-            finalOutput = CombineWithCrossfadeAtPosition(
+            finalOutput = TransitionEffects.Apply(
+                transition,
                 drumIntro,
                 originalSamples,
                 format.SampleRate,
                 format.Channels,
+                bpm,
                 crossfadeSeconds,
+                effectiveTransitionBars,
                 crossfadeStartSample);
         }
 
@@ -417,14 +428,14 @@ public static class IntroGenerator
         return beatIndex * secondsPerBeat;
     }
 
-     private static float[] CombineWithCrossfadeAtPosition(
-        float[] drumIntro,
-        float[] original,
-        int sampleRate,
-        int channels,
-        double crossfadeSeconds,
-        int crossfadeStartSample)
-    {
+     internal static float[] CombineWithCrossfadeAtPosition(
+         float[] drumIntro,
+         float[] original,
+         int sampleRate,
+         int channels,
+         double crossfadeSeconds,
+         int crossfadeStartSample)
+     {
         crossfadeStartSample = Math.Clamp(crossfadeStartSample, 0, Math.Max(0, original.Length - channels));
 
         var crossfadeSamples = (int)(crossfadeSeconds * sampleRate) * channels;

@@ -7,7 +7,7 @@
 <script src="https://unpkg.com/wavesurfer.js@7"></script>
 
 <div class="row justify-content-center mt-4">
-    <div class="col-lg-10">
+    <div class="col-12">
 
         <!-- Upload area -->
         <div class="mx-card mb-4">
@@ -49,18 +49,19 @@
 
         <!-- Waveform + BPM/Key -->
         <div class="track-waveform-area d-none mb-3">
-            <div class="track-waveform" style="height:60px;background:#111;border-radius:6px;position:relative;cursor:pointer;margin-top:14px;"></div>
+            <div class="track-bar-ruler" style="position:relative;height:14px;margin-top:6px;"></div>
+            <div class="track-waveform" style="height:60px;background:#111;border-radius:6px;position:relative;cursor:pointer;"></div>
             <div class="track-waveform-hint" style="font-size:0.6rem;color:#555;text-align:right;">Click on waveform to set intro START &mdash; Shift+Click to set intro END</div>
-            <div class="track-region-info small mt-1" style="color:#ff3b30;"></div>
+            <div class="track-region-info small mt-1" style="color:#1e90ff;"></div>
 
             <!-- Intro selection preview (selected stems played together) -->
-            <div class="track-intro-preview d-none mt-2 p-2" style="background:#111;border:1px solid #ff3b3066;border-radius:6px;">
+            <div class="track-intro-preview d-none mt-2 p-2" style="background:#111;border:1px solid #1e90ff66;border-radius:6px;">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <button type="button" class="btn-preview-intro" style="width:32px;height:32px;border-radius:50%;border:2px solid #ff3b30;background:transparent;color:#ff3b30;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#9654;</button>
+                    <button type="button" class="btn-preview-intro" style="width:32px;height:32px;border-radius:50%;border:2px solid #1e90ff;background:transparent;color:#1e90ff;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#9654;</button>
                     <span style="font-size:0.7rem;color:#bbb;text-transform:uppercase;letter-spacing:0.5px;">Preview Intro Selection</span>
-                    <span class="track-intro-preview-info" style="font-size:0.7rem;color:#ff3b30;margin-left:auto;"></span>
+                    <span class="track-intro-preview-info" style="font-size:0.7rem;color:#1e90ff;margin-left:auto;"></span>
                     <label class="form-check-label small ms-2" style="color:#888;">
-                        <input type="checkbox" class="form-check-input track-intro-preview-loop" checked style="margin-right:4px;accent-color:#ff3b30;">
+                        <input type="checkbox" class="form-check-input track-intro-preview-loop" checked style="margin-right:4px;accent-color:#1e90ff;">
                         Loop
                     </label>
                 </div>
@@ -86,6 +87,7 @@
                         <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">DRUMS</span>
                         <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#e74c3c22;color:#e74c3c;">DETECTED</span>
                     </div>
+                    <div class="track-stem-ruler" data-stem="drums" style="position:relative;height:10px;"></div>
                     <div class="track-stem-wf" data-stem="drums" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
                 </div>
                 <div class="track-stem-row" data-stem="bass">
@@ -95,6 +97,7 @@
                         <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">BASS</span>
                         <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#3498db22;color:#3498db;">DETECTED</span>
                     </div>
+                    <div class="track-stem-ruler" data-stem="bass" style="position:relative;height:10px;"></div>
                     <div class="track-stem-wf" data-stem="bass" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
                 </div>
                 <div class="track-stem-row" data-stem="other">
@@ -104,6 +107,7 @@
                         <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">MELODY / INSTRUMENTS</span>
                         <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#2ecc7122;color:#2ecc71;">DETECTED</span>
                     </div>
+                    <div class="track-stem-ruler" data-stem="other" style="position:relative;height:10px;"></div>
                     <div class="track-stem-wf" data-stem="other" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
                 </div>
                 <div class="track-stem-row" data-stem="vocals">
@@ -113,6 +117,7 @@
                         <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">VOCALS</span>
                         <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#9b59b622;color:#9b59b6;">DETECTED</span>
                     </div>
+                    <div class="track-stem-ruler" data-stem="vocals" style="position:relative;height:10px;"></div>
                     <div class="track-stem-wf" data-stem="vocals" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
                 </div>
             </div>
@@ -170,6 +175,29 @@
                         <option>Cumbia</option>
                         <option>Vallenato</option>
                     </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="small">Transition</label>
+                    <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition" title="Effect used to blend the intro into the original song">
+                        <option value="crossfade" selected>Crossfade (default)</option>
+                        <option value="none">No effect (hard cut)</option>
+                        <option value="lowpass-sweep">Low-pass filter open</option>
+                        <option value="highpass-sweep">High-pass filter up</option>
+                        <option value="riser-noise">White-noise riser</option>
+                        <option value="downlifter">Reverse / down-lifter</option>
+                        <option value="echo-tail">Tape echo tail</option>
+                        <option value="volume-fade">Volume fade</option>
+                        <option value="slam-cut">Slam cut on downbeat</option>
+                    </select>
+                    <div class="mt-1">
+                        <label class="small" style="color:#666;">Length (bars)</label>
+                        <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition-bars">
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="4">4</option>
+                            <option value="8">8</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="small">Song Starts</label>
@@ -318,13 +346,29 @@
             const wfArea = card.querySelector('.track-waveform-area');
             wfArea.classList.remove('d-none');
             const wfContainer = card.querySelector('.track-waveform');
+            // Serato-style colored canvas behind WaveSurfer
+            wfContainer.style.height = '80px';
+            const seratoCanvas = document.createElement('canvas');
+            seratoCanvas.className = 'serato-wave';
+            seratoCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;border-radius:6px;';
+            wfContainer.appendChild(seratoCanvas);
             entry.ws = WaveSurfer.create({
                 container: wfContainer,
                 url: `${API}/${data.trackId}/original`,
-                waveColor: '#00e5ff',
-                progressColor: '#00e5ff44',
+                waveColor: 'rgba(0,0,0,0)',
+                progressColor: 'rgba(255,255,255,0.08)',
                 cursorColor: '#fff',
-                height: 60, barWidth: 2, barGap: 1, barRadius: 2,
+                cursorWidth: 1,
+                height: 80, barWidth: 2, barGap: 1, barRadius: 2,
+            });
+            // Render Serato-style 3-band coloured waveform once decoded
+            entry.ws.on('decode', () => {
+                const buffer = entry.ws.getDecodedData();
+                if (buffer) renderSeratoWaveform(seratoCanvas, buffer);
+            });
+            window.addEventListener('resize', () => {
+                const buffer = entry.ws?.getDecodedData?.();
+                if (buffer) renderSeratoWaveform(seratoCanvas, buffer);
             });
             entry.ws.on('interaction', () => entry.ws.playPause());
             entry.region = {};
@@ -549,17 +593,17 @@
         const widthPct = ((end - start) / duration) * 100;
         const ov = document.createElement('div');
         ov.className = 'region-overlay';
-        ov.style.cssText = `position:absolute;top:0;height:100%;background:rgba(255,59,48,0.18);border-left:3px solid #ff3b30;border-right:3px solid #ff3b30;pointer-events:none;z-index:3;left:${leftPct}%;width:${widthPct}%;box-shadow:0 0 6px rgba(255,59,48,0.6) inset;`;
+        ov.style.cssText = `position:absolute;top:0;height:100%;background:rgba(30,144,255,0.18);border-left:3px solid #1e90ff;border-right:3px solid #1e90ff;pointer-events:none;z-index:3;left:${leftPct}%;width:${widthPct}%;box-shadow:0 0 6px rgba(30,144,255,0.6) inset;`;
 
         // Start time label (left edge)
         const startLbl = document.createElement('span');
-        startLbl.style.cssText = 'position:absolute;left:3px;bottom:2px;font-size:8px;font-weight:bold;color:#ff3b30;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        startLbl.style.cssText = 'position:absolute;left:3px;bottom:2px;font-size:8px;font-weight:bold;color:#1e90ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
         startLbl.textContent = formatTime(start);
         ov.appendChild(startLbl);
 
         // End time label (right edge)
         const endLbl = document.createElement('span');
-        endLbl.style.cssText = 'position:absolute;right:3px;bottom:2px;font-size:8px;font-weight:bold;color:#ff3b30;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        endLbl.style.cssText = 'position:absolute;right:3px;bottom:2px;font-size:8px;font-weight:bold;color:#1e90ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
         endLbl.textContent = formatTime(end);
         ov.appendChild(endLbl);
 
@@ -580,6 +624,108 @@
         return m > 0 ? `${m}:${s.padStart(4,'0')}` : `${s}s`;
     }
 
+    // --- Serato-style 3-band coloured waveform ----------------------------------------
+    // Renders Lows (red), Mids (green) and Highs (blue) of an AudioBuffer onto a canvas,
+    // using additive blending so they combine to white where all three bands are loud.
+    async function renderSeratoWaveform(canvas, audioBuffer) {
+        if (!canvas || !audioBuffer) return;
+        const parent = canvas.parentElement;
+        const cssW = Math.max(200, parent.clientWidth | 0);
+        const cssH = Math.max(40,  parent.clientHeight | 0);
+        const dpr  = window.devicePixelRatio || 1;
+        canvas.width  = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width  = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        // Filter each channel mix down to mono first to keep things fast
+        const len = audioBuffer.length;
+        const sr  = audioBuffer.sampleRate;
+        const ch  = audioBuffer.numberOfChannels;
+        const mono = new Float32Array(len);
+        for (let c = 0; c < ch; c++) {
+            const d = audioBuffer.getChannelData(c);
+            for (let i = 0; i < len; i++) mono[i] += d[i] / ch;
+        }
+
+        const runBand = async (type, freq, q) => {
+            const oac = new OfflineAudioContext(1, len, sr);
+            const src = oac.createBufferSource();
+            const buf = oac.createBuffer(1, len, sr);
+            buf.copyToChannel(mono, 0);
+            src.buffer = buf;
+            const f = oac.createBiquadFilter();
+            f.type = type;
+            f.frequency.value = freq;
+            if (q != null) f.Q.value = q;
+            src.connect(f).connect(oac.destination);
+            src.start(0);
+            const out = await oac.startRendering();
+            return out.getChannelData(0);
+        };
+
+        let lows, mids, highs;
+        try {
+            [lows, mids, highs] = await Promise.all([
+                runBand('lowpass',  250, 0.7),
+                runBand('bandpass', 1200, 1.0),
+                runBand('highpass', 4000, 0.7),
+            ]);
+        } catch (err) {
+            console.warn('Serato render failed:', err);
+            return;
+        }
+
+        // Bucket into per-pixel peaks
+        const pixels = cssW;
+        const samplesPerPx = Math.max(1, Math.floor(len / pixels));
+        const peaks = (arr) => {
+            const p = new Float32Array(pixels);
+            for (let x = 0; x < pixels; x++) {
+                let s = x * samplesPerPx;
+                let e = Math.min(len, s + samplesPerPx);
+                let max = 0;
+                for (let i = s; i < e; i++) {
+                    const v = arr[i] < 0 ? -arr[i] : arr[i];
+                    if (v > max) max = v;
+                }
+                p[x] = max;
+            }
+            return p;
+        };
+        const lP = peaks(lows), mP = peaks(mids), hP = peaks(highs);
+
+        // Normalise each band against the overall peak so all 3 colours are comparable
+        let globalMax = 0;
+        for (let x = 0; x < pixels; x++) {
+            if (lP[x] > globalMax) globalMax = lP[x];
+            if (mP[x] > globalMax) globalMax = mP[x];
+            if (hP[x] > globalMax) globalMax = hP[x];
+        }
+        if (globalMax <= 0) return;
+        const scale = 1 / globalMax;
+
+        // Draw using additive ('lighter') compositing -- exactly how Serato blends bands
+        const mid = cssH / 2;
+        const drawBand = (peakArr, colour, gain) => {
+            ctx.fillStyle = colour;
+            for (let x = 0; x < pixels; x++) {
+                const h = Math.min(mid, peakArr[x] * scale * gain * mid);
+                if (h <= 0.5) continue;
+                ctx.fillRect(x, mid - h, 1, h * 2);
+            }
+        };
+        ctx.globalCompositeOperation = 'lighter';
+        drawBand(lP, 'rgb(220, 40, 40)',  1.05); // lows  -- red
+        drawBand(mP, 'rgb(40, 200, 80)',  1.20); // mids  -- green
+        drawBand(hP, 'rgb(60, 140, 255)', 1.15); // highs -- blue
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    // ------------------------------------------------------------------------------------
+
     async function autoAnalyze(entry, card) {
         card.querySelector('.track-detected-bpm').textContent = '...';
         card.querySelector('.track-detected-key').textContent = '...';
@@ -596,23 +742,9 @@
             if (entry.ws && entry.bars.length) {
                 const draw = () => {
                     const w = entry.ws.getWrapper(); if(!w) return;
-                    w.style.position = 'relative';
-                    w.style.overflow = 'visible';
-                    w.querySelectorAll('.bar-marker').forEach(m=>m.remove());
                     const dur = entry.ws.getDuration(); if(!dur) return;
-                    entry.bars.forEach((bar,i) => {
-                        const pct = (bar[0]/dur)*100;
-                        const mk = document.createElement('div');
-                        mk.className='bar-marker';
-                        mk.style.cssText=`position:absolute;left:${pct}%;top:0;height:100%;width:1px;background:rgba(255,255,255,${i%4===0?0.3:0.12});pointer-events:none;z-index:4;`;
-                        if(i%4===0){
-                            const lb=document.createElement('span');
-                            lb.style.cssText='position:absolute;top:-12px;left:-4px;font-size:9px;font-weight:bold;color:rgba(255,255,255,0.6);pointer-events:none;';
-                            lb.textContent=i+1;
-                            mk.appendChild(lb);
-                        }
-                        w.appendChild(mk);
-                    });
+                    const ruler = card.querySelector('.track-bar-ruler');
+                    drawBarGrid(w, entry.bars, dur, 'main', ruler);
                 };
                 if(entry.ws.getDuration()) draw(); else entry.ws.on('ready', draw);
             }
@@ -624,6 +756,111 @@
     }
 
     const STEM_COLORS = { drums:'#e74c3c', bass:'#3498db', other:'#2ecc71', vocals:'#9b59b6' };
+
+    // --- Shared bar-grid renderer -------------------------------------------------
+    // variant: 'main' (taller waveform, labels every 4 bars) or 'stem' (compact)
+    // ruler: optional external strip where bar numbers are rendered (so they don't
+    //        overlap the waveform). When provided, the wrapper only gets line markers.
+    function drawBarGrid(wrapper, bars, duration, variant, ruler) {
+        if (!wrapper || !bars || !bars.length || !duration) return;
+        wrapper.style.position = 'relative';
+        if (variant === 'main') wrapper.style.overflow = 'visible';
+        wrapper.querySelectorAll('.bar-marker,.beat-marker,.bar-number').forEach(m => m.remove());
+        if (ruler) {
+            ruler.style.position = 'relative';
+            ruler.querySelectorAll('.bar-number,.bar-tick').forEach(m => m.remove());
+        }
+
+        const isMain = variant === 'main';
+        // Colors / widths chosen so they stay legible over cyan / red / blue / green / purple.
+        // Downbeats use bright white (was amber) for cleaner readability.
+        const downbeatColor = isMain ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.70)';
+        const barColor      = isMain ? 'rgba(255,255,255,0.40)' : 'rgba(255,255,255,0.25)';
+        const beatColor     = 'rgba(255,255,255,0.08)';
+        const downbeatW     = isMain ? 2 : 1.5;
+        const labelEvery    = isMain ? 4 : 8;
+
+        bars.forEach((bar, i) => {
+            const barStart = bar[0];
+            const barEnd   = bar[1] ?? (bars[i+1] ? bars[i+1][0] : barStart + (bar[0] - (bars[i-1]?.[0] ?? 0)));
+            const isDownbeat = (i % 4 === 0);
+
+            // Main bar line
+            const pct = (barStart / duration) * 100;
+            const mk = document.createElement('div');
+            mk.className = 'bar-marker';
+            mk.style.cssText =
+                `position:absolute;left:${pct}%;top:0;height:100%;` +
+                `width:${isDownbeat ? downbeatW : 1}px;` +
+                `background:${isDownbeat ? downbeatColor : barColor};` +
+                `pointer-events:none;z-index:4;`;
+            wrapper.appendChild(mk);
+
+            // 3 beat subdivisions inside this bar (skip when bars are too small visually)
+            const barWidthPct = ((barEnd - barStart) / duration) * 100;
+            if (barWidthPct > 0.8) {
+                for (let b = 1; b <= 3; b++) {
+                    const tBeat = barStart + ((barEnd - barStart) * b / 4);
+                    const bp = (tBeat / duration) * 100;
+                    const bm = document.createElement('div');
+                    bm.className = 'beat-marker';
+                    bm.style.cssText =
+                        `position:absolute;left:${bp}%;top:25%;height:50%;width:1px;` +
+                        `background:${beatColor};` +
+                        `pointer-events:none;z-index:3;` +
+                        `border-left:1px dotted ${beatColor};`;
+                    wrapper.appendChild(bm);
+                }
+            }
+
+            // Bar number label (placed in external ruler if provided, otherwise over the waveform)
+            if (i % labelEvery === 0) {
+                const lb = document.createElement('span');
+                lb.className = 'bar-number';
+                // Numeric-only labels on both main and stem rulers.
+                lb.textContent = (i + 1);
+
+                if (ruler) {
+                    // Render into dedicated ruler strip -- never overlaps the waveform.
+                    // Also add a small downward tick that points at the bar line.
+                    lb.style.cssText =
+                        'position:absolute;bottom:0;transform:translateX(-50%);' +
+                        (isMain ? 'font-size:10px;' : 'font-size:8px;') +
+                        'font-weight:700;color:#ffffff;' +
+                        'background:rgba(0,0,0,0.7);padding:0 4px;border-radius:3px;' +
+                        'border:1px solid rgba(255,255,255,0.35);pointer-events:none;white-space:nowrap;' +
+                        'line-height:1.1;' +
+                        `left:${pct}%;`;
+                    ruler.appendChild(lb);
+
+                    const tick = document.createElement('div');
+                    tick.className = 'bar-tick';
+                    tick.style.cssText =
+                        `position:absolute;left:${pct}%;bottom:-2px;width:1px;height:3px;` +
+                        `background:${downbeatColor};pointer-events:none;`;
+                    ruler.appendChild(tick);
+                } else if (isMain) {
+                    // Fallback: floated above wrapper (legacy path, kept for safety)
+                    lb.style.cssText =
+                        'position:absolute;top:-14px;transform:translateX(-50%);' +
+                        'font-size:10px;font-weight:700;color:#ffffff;' +
+                        'background:rgba(0,0,0,0.65);padding:1px 5px;border-radius:3px;' +
+                        'border:1px solid rgba(255,255,255,0.35);pointer-events:none;white-space:nowrap;' +
+                        `left:${pct}%;`;
+                    wrapper.appendChild(lb);
+                } else {
+                    lb.style.cssText =
+                        'position:absolute;bottom:1px;transform:translateX(-50%);' +
+                        'font-size:8px;font-weight:600;color:#ffffff;' +
+                        'background:rgba(0,0,0,0.55);padding:0 3px;border-radius:2px;' +
+                        'pointer-events:none;white-space:nowrap;' +
+                        `left:${pct}%;`;
+                    wrapper.appendChild(lb);
+                }
+            }
+        });
+    }
+    // -----------------------------------------------------------------------------
 
     async function autoSeparateStems(entry, card) {
         const area = card.querySelector('.track-stems-area');
@@ -676,21 +913,9 @@
             if (entry.bars && entry.bars.length) {
                 const draw = () => {
                     const w = ws.getWrapper(); if(!w) return;
-                    w.style.position = 'relative';
                     const dur = ws.getDuration(); if(!dur) return;
-                    entry.bars.forEach((bar,i) => {
-                        const pct = (bar[0]/dur)*100;
-                        const mk = document.createElement('div');
-                        mk.className='bar-marker';
-                        mk.style.cssText=`position:absolute;left:${pct}%;top:0;height:100%;width:1px;background:rgba(255,255,255,${i%4===0?0.25:0.08});pointer-events:none;z-index:4;`;
-                        if(i%8===0){
-                            const lb=document.createElement('span');
-                            lb.style.cssText='position:absolute;bottom:1px;left:2px;font-size:7px;color:rgba(255,255,255,0.35);pointer-events:none;';
-                            lb.textContent=i+1;
-                            mk.appendChild(lb);
-                        }
-                        w.appendChild(mk);
-                    });
+                    const ruler = card.querySelector(`.track-stem-ruler[data-stem="${stem}"]`);
+                    drawBarGrid(w, entry.bars, dur, 'stem', ruler);
                 };
                 if(ws.getDuration()) draw(); else ws.on('ready', draw);
             }
@@ -842,6 +1067,8 @@
         const loop = card.querySelector('.track-loop').checked;
         const introOnly = card.querySelector('.track-output:checked')?.value === 'intro';
         const genre = card.querySelector('.track-genre').value;
+        const transition = card.querySelector('.track-transition')?.value || 'crossfade';
+        const transitionBars = card.querySelector('.track-transition-bars')?.value || '2';
 
         // Get selected stems
         const selectedStems = [];
@@ -857,6 +1084,7 @@
         if (entry.region && entry.region.start != null) url += `&regionStart=${entry.region.start.toFixed(3)}`;
         if (entry.region && entry.region.end != null) url += `&regionEnd=${entry.region.end.toFixed(3)}`;
         if (songStart != null) url += `&songStart=${songStart.toFixed(3)}`;
+        url += `&transition=${encodeURIComponent(transition)}&transitionBars=${transitionBars}`;
 
         const btn = card.querySelector('.btn-generate');
         btn.disabled = true;
