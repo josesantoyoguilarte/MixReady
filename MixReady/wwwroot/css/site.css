@@ -17,47 +17,196 @@ html {
   min-height: 100%;
 }
 
+/* Typography
+   Inter for the UI, JetBrains Mono for any numeric/time readout.
+   The system stack ensures perfect rendering on macOS, Windows and Linux
+   even before/while the webfonts download.                              */
 body {
   margin-bottom: 60px;
   background: #0d0d0d;
   color: #e0e0e0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter contextual alternates -- crisper digits, single-storey 'a' */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.mx-mono,
+.track-detected-bpm,
+.track-detected-key,
+.track-detected-genre,
+.track-bpm, .track-key, .track-det-genre,
+.track-region-info,
+.track-intro-preview-info {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+               Menlo, Consolas, 'Liberation Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 /* MixReady UI */
+
+/* Design tokens -- single source of truth for colors, spacing, type.
+   Edit any value here and the whole UI updates. */
+:root {
+  --accent:        #00e5ff;
+  --accent-dim:    rgba(0, 229, 255, 0.27);
+  --accent-soft:   rgba(0, 229, 255, 0.10);
+  --select:        #1e90ff;
+  --select-fill:   rgba(30, 144, 255, 0.18);
+  --warn:          #ffc107;
+  --warn-soft:     rgba(255, 193, 7, 0.15);
+  --ok:            #4caf50;
+  --danger:        #ff3b30;
+  --bg:            #0d0d0d;
+  --bg-card:       #1a1a2e;
+  --bg-elev:       #111122;
+  --bg-inset:      #111;
+  --border:        #2a2a4a;
+  --border-strong: #3a3a5a;
+  --text:          #e0e0e0;
+  --text-mute:     #888;
+  --text-faint:    #555;
+  --stem-drums:    #e74c3c;
+  --stem-bass:     #3498db;
+  --stem-other:    #2ecc71;
+  --stem-vocals:   #9b59b6;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
 .mx-brand {
+  display: inline-flex !important;
+  align-items: center;
+  gap: var(--space-2);
   font-weight: 800;
-  font-size: 1.5rem;
-  color: #00e5ff !important;
-  letter-spacing: 1px;
+  font-size: 1.25rem;
+  color: var(--accent) !important;
+  letter-spacing: -0.01em;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.mx-brand-icon {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.45));
+}
+
+/* Top-nav links with leading icon */
+.mx-nav-links .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-mute) !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s;
+}
+.mx-nav-links .nav-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text) !important;
+}
+.mx-nav-links .nav-link svg {
+  opacity: 0.85;
 }
 
 .mx-card {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
-  border-radius: 12px;
-  padding: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+/* Collapsible sections used to hide stems / advanced controls behind expanders. */
+.mx-expander {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+}
+.mx-expander-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  cursor: pointer;
+  user-select: none;
+  padding: var(--space-1) 0;
+  transition: color 0.15s;
+}
+.mx-expander-header:hover { color: var(--text); }
+.mx-expander-header .chev {
+  display: inline-block;
+  transition: transform 0.18s ease;
+  color: var(--accent);
+  font-size: 0.65rem;
+}
+.mx-expander.open > .mx-expander-header .chev { transform: rotate(90deg); }
+.mx-expander-body {
+  display: none;
+  margin-top: var(--space-3);
+}
+.mx-expander.open > .mx-expander-body { display: block; }
+.mx-expander-count {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .mx-drop {
-  border: 2px dashed #444;
-  border-radius: 12px;
-  padding: 3rem 2rem;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
-  background: #111122;
+  transition: all 0.2s ease;
+  background: var(--bg-elev);
 }
 
 .mx-drop:hover, .mx-drop.dragover {
-  border-color: #00e5ff;
-  background: #1a1a3e;
+  border-color: var(--accent);
+  background: rgba(0, 229, 255, 0.04);
 }
 
+.mx-drop-icon {
+  color: var(--text-faint);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.mx-drop:hover .mx-drop-icon,
+.mx-drop.dragover .mx-drop-icon {
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Legacy emoji icon kept for backward compat with anywhere still using .mx-drop .icon */
 .mx-drop .icon {
   font-size: 3rem;
   color: #555;
 }
-
 .mx-drop.dragover .icon {
   color: #00e5ff;
 }
@@ -167,6 +316,19 @@ body {
 .mx-filename {
   color: #00e5ff;
   font-weight: 600;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.mx-filename-sep {
+  color: #555;
+  font-weight: 400;
+  margin: 0 2px;
 }
 
 .navbar {
@@ -183,7 +345,107 @@ body {
 label {
   font-weight: 600;
   color: #aaa;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
 }
+
+/* Tiny micro-label used above instrument readouts (BPM / KEY / GENRE pills, etc.).
+   Uppercase is reserved for these "meter face" contexts only. */
+.mx-microlabel {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
+}
+
+/* Instrument-readout pills (BPM / KEY / GENRE etc.).
+   Mono digits + cyan accent, looks like a Pioneer CDJ display. */
+.mx-readout {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.mx-readout:hover { border-color: var(--border-strong); }
+.mx-readout-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A/B compare toggle (Original vs Generated) */
+.mx-ab-toggle {
+  display: inline-flex;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.mx-ab-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.mx-ab-btn:hover { color: var(--text); }
+.mx-ab-btn.active {
+  background: var(--accent);
+  color: #001218;
+}
+.mx-ab-btn.active:hover { color: #001218; }
+
+/* Result waveform canvas wrap -- thin border, hugs the AB controls */
+.track-result-wave-wrap { border: 1px solid var(--border); }
+
+/* -----------------------------------------------------------------
+   Toast notifications -- non-blocking alternative to alert().
+   Stacks bottom-right, auto-dismisses, ARIA-live for screen readers.
+   ----------------------------------------------------------------- */
+#mx-toast-stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.mx-toast {
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 380px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.mx-toast.show { opacity: 1; transform: translateY(0); }
+.mx-toast.info    { border-left-color: var(--accent); }
+.mx-toast.success { border-left-color: var(--ok); }
+.mx-toast.warn    { border-left-color: var(--warn); }
+.mx-toast.error   { border-left-color: var(--danger); }

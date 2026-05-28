@@ -12,13 +12,20 @@
         <!-- Upload area -->
         <div class="mx-card mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">&#127925; Upload Tracks</h4>
+                <h4 class="mb-0 d-inline-flex align-items-center gap-2">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--accent);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    <span>Upload tracks</span>
+                </h4>
                 <span class="text-muted small" id="track-counter">0 / 5</span>
             </div>
             <div id="drop-zone" class="mx-drop">
-                <div class="icon">&#128193;</div>
-                <p class="mt-2 mb-1">Drag & drop up to 5 tracks here</p>
-                <p class="text-muted small">or click to browse -- MP3, WAV, FLAC, OGG, AAC (max 100 MB each)</p>
+                <svg class="mx-drop-icon" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="mt-2 mb-1">Drop tracks here or click to browse</p>
+                <p class="text-muted small mb-0">MP3 &middot; WAV &middot; FLAC &middot; OGG &middot; AAC &mdash; up to 100&nbsp;MB each, 5 tracks max</p>
                 <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.aac" class="d-none" multiple />
             </div>
         </div>
@@ -33,12 +40,14 @@
 <template id="track-template">
     <div class="mx-card mb-4 track-card" data-idx="">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <span class="track-number badge bg-info text-dark me-2">#1</span>
-                <span class="mx-filename track-name"></span>
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+            <div class="track-header-info d-flex align-items-center gap-2" style="min-width:0;flex:1 1 auto;">
+                <span class="track-number badge bg-info text-dark flex-shrink-0">#1</span>
+                <span class="mx-filename track-name" title=""></span>
             </div>
-            <button class="btn btn-sm btn-outline-danger btn-remove" title="Remove">&#10005;</button>
+            <button class="btn btn-sm btn-outline-secondary btn-remove flex-shrink-0" title="Remove" aria-label="Remove track">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
 
         <!-- Original preview -->
@@ -51,7 +60,10 @@
         <div class="track-waveform-area d-none mb-3">
             <div class="track-bar-ruler" style="position:relative;height:14px;margin-top:6px;"></div>
             <div class="track-waveform" style="height:60px;background:#111;border-radius:6px;position:relative;cursor:pointer;"></div>
-            <div class="track-waveform-hint" style="font-size:0.6rem;color:#555;text-align:right;">Click on waveform to set intro START &mdash; Shift+Click to set intro END</div>
+            <div class="d-flex justify-content-between align-items-center mt-1" style="gap:var(--space-3);">
+                <span class="track-playhead-readout mx-mono" style="font-size:0.7rem;color:var(--text-mute);">0:00.00 &middot; Bar &mdash;</span>
+                <span class="track-waveform-hint" style="font-size:0.6rem;color:var(--text-faint);">Click to set intro START &mdash; Shift+Click to set intro END</span>
+            </div>
             <div class="track-region-info small mt-1" style="color:#1e90ff;"></div>
 
             <!-- Intro selection preview (selected stems played together) -->
@@ -68,64 +80,67 @@
                 <div class="small mt-1" style="color:#666;font-size:0.6rem;">Plays the selected stems (drums / bass / melody / vocals) together between your intro start and end.</div>
             </div>
 
-            <div class="row text-center mt-2 g-2">
-                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">BPM</span><span class="track-detected-bpm" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
-                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">KEY</span><span class="track-detected-key" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
-                <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">GENRE</span><span class="track-detected-genre" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
+            <div class="row text-center mt-3 g-2">
+                <div class="col-4"><div class="mx-readout"><span class="mx-microlabel">BPM</span><span class="track-detected-bpm mx-readout-value">--</span></div></div>
+                <div class="col-4"><div class="mx-readout"><span class="mx-microlabel">Key</span><span class="track-detected-key mx-readout-value">--</span></div></div>
+                <div class="col-4"><div class="mx-readout"><span class="mx-microlabel">Genre</span><span class="track-detected-genre mx-readout-value">--</span></div></div>
             </div>
         </div>
 
-        <!-- Stems -->
-        <div class="track-stems-area d-none mb-3">
-            <div class="track-stems-status small text-center mb-2" style="color:#ffc107;">Separating stems...</div>
-            <div class="track-stems d-none">
-                <label class="small mb-1" style="color:#888;">Select stems for intro extraction:</label>
-                <div class="track-stem-row" data-stem="drums">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <input type="checkbox" class="track-stem-check" data-stem="drums" checked style="width:16px;height:16px;accent-color:#00e5ff;">
-                        <button class="stem-play-btn" data-stem="drums" style="width:24px;height:24px;border-radius:50%;border:2px solid #e74c3c;background:transparent;color:#e74c3c;font-size:0.6rem;cursor:pointer;">&#9654;</button>
-                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">DRUMS</span>
-                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#e74c3c22;color:#e74c3c;">DETECTED</span>
+        <!-- Stems (collapsible) -->
+        <div class="track-stems-area mx-expander d-none">
+            <div class="mx-expander-header" data-toggle="stems">
+                <span class="chev">&#9656;</span>
+                <span>Stems</span>
+                <span class="mx-expander-count track-stems-count">separating…</span>
+            </div>
+            <div class="mx-expander-body">
+                <div class="track-stems-status small text-center mb-2" style="color:var(--warn);">Separating stems...</div>
+                <div class="track-stems d-none">
+                    <label class="small mb-1" style="color:var(--text-mute);">Select stems for intro extraction:</label>
+                    <div class="track-stem-row" data-stem="drums">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <input type="checkbox" class="track-stem-check" data-stem="drums" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                            <button class="stem-play-btn" data-stem="drums" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--stem-drums);background:transparent;color:var(--stem-drums);font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                            <span style="font-size:0.7rem;color:var(--text-mute);text-transform:uppercase;flex-grow:1;">DRUMS</span>
+                        </div>
+                        <div class="track-stem-ruler" data-stem="drums" style="position:relative;height:10px;"></div>
+                        <div class="track-stem-wf" data-stem="drums" style="height:35px;background:var(--bg-inset);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;position:relative;"></div>
                     </div>
-                    <div class="track-stem-ruler" data-stem="drums" style="position:relative;height:10px;"></div>
-                    <div class="track-stem-wf" data-stem="drums" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
-                </div>
-                <div class="track-stem-row" data-stem="bass">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <input type="checkbox" class="track-stem-check" data-stem="bass" checked style="width:16px;height:16px;accent-color:#00e5ff;">
-                        <button class="stem-play-btn" data-stem="bass" style="width:24px;height:24px;border-radius:50%;border:2px solid #3498db;background:transparent;color:#3498db;font-size:0.6rem;cursor:pointer;">&#9654;</button>
-                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">BASS</span>
-                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#3498db22;color:#3498db;">DETECTED</span>
+                    <div class="track-stem-row" data-stem="bass">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <input type="checkbox" class="track-stem-check" data-stem="bass" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                            <button class="stem-play-btn" data-stem="bass" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--stem-bass);background:transparent;color:var(--stem-bass);font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                            <span style="font-size:0.7rem;color:var(--text-mute);text-transform:uppercase;flex-grow:1;">BASS</span>
+                        </div>
+                        <div class="track-stem-ruler" data-stem="bass" style="position:relative;height:10px;"></div>
+                        <div class="track-stem-wf" data-stem="bass" style="height:35px;background:var(--bg-inset);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;position:relative;"></div>
                     </div>
-                    <div class="track-stem-ruler" data-stem="bass" style="position:relative;height:10px;"></div>
-                    <div class="track-stem-wf" data-stem="bass" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
-                </div>
-                <div class="track-stem-row" data-stem="other">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <input type="checkbox" class="track-stem-check" data-stem="other" checked style="width:16px;height:16px;accent-color:#00e5ff;">
-                        <button class="stem-play-btn" data-stem="other" style="width:24px;height:24px;border-radius:50%;border:2px solid #2ecc71;background:transparent;color:#2ecc71;font-size:0.6rem;cursor:pointer;">&#9654;</button>
-                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">MELODY / INSTRUMENTS</span>
-                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#2ecc7122;color:#2ecc71;">DETECTED</span>
+                    <div class="track-stem-row" data-stem="other">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <input type="checkbox" class="track-stem-check" data-stem="other" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                            <button class="stem-play-btn" data-stem="other" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--stem-other);background:transparent;color:var(--stem-other);font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                            <span style="font-size:0.7rem;color:var(--text-mute);text-transform:uppercase;flex-grow:1;">Melody</span>
+                        </div>
+                        <div class="track-stem-ruler" data-stem="other" style="position:relative;height:10px;"></div>
+                        <div class="track-stem-wf" data-stem="other" style="height:35px;background:var(--bg-inset);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;position:relative;"></div>
                     </div>
-                    <div class="track-stem-ruler" data-stem="other" style="position:relative;height:10px;"></div>
-                    <div class="track-stem-wf" data-stem="other" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
-                </div>
-                <div class="track-stem-row" data-stem="vocals">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <input type="checkbox" class="track-stem-check" data-stem="vocals" style="width:16px;height:16px;accent-color:#00e5ff;">
-                        <button class="stem-play-btn" data-stem="vocals" style="width:24px;height:24px;border-radius:50%;border:2px solid #9b59b6;background:transparent;color:#9b59b6;font-size:0.6rem;cursor:pointer;">&#9654;</button>
-                        <span style="font-size:0.7rem;color:#888;text-transform:uppercase;flex-grow:1;">VOCALS</span>
-                        <span style="font-size:0.55rem;font-weight:700;padding:2px 6px;border-radius:10px;background:#9b59b622;color:#9b59b6;">DETECTED</span>
+                    <div class="track-stem-row" data-stem="vocals">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <input type="checkbox" class="track-stem-check" data-stem="vocals" style="width:16px;height:16px;accent-color:var(--accent);">
+                            <button class="stem-play-btn" data-stem="vocals" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--stem-vocals);background:transparent;color:var(--stem-vocals);font-size:0.6rem;cursor:pointer;">&#9654;</button>
+                            <span style="font-size:0.7rem;color:var(--text-mute);text-transform:uppercase;flex-grow:1;">Vocals</span>
+                        </div>
+                        <div class="track-stem-ruler" data-stem="vocals" style="position:relative;height:10px;"></div>
+                        <div class="track-stem-wf" data-stem="vocals" style="height:35px;background:var(--bg-inset);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;position:relative;"></div>
                     </div>
-                    <div class="track-stem-ruler" data-stem="vocals" style="position:relative;height:10px;"></div>
-                    <div class="track-stem-wf" data-stem="vocals" style="height:35px;background:#111;border-radius:4px;overflow:hidden;cursor:pointer;position:relative;"></div>
                 </div>
             </div>
         </div>
 
         <!-- Config -->
         <div class="track-config">
-            <div class="row g-2">
+            <div class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="small">Bars</label>
                     <div class="mx-option-group">
@@ -137,23 +152,7 @@
                         <label class="btn btn-outline-info btn-sm">16</label>
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="small">Loop</label>
-                    <div class="form-check form-switch mt-1">
-                        <input class="form-check-input track-loop" type="checkbox">
-                        <label class="form-check-label small">Loop</label>
-                    </div>
-                </div>
                 <div class="col-md-3">
-                    <label class="small">Output</label>
-                    <div class="mx-option-group">
-                        <input type="radio" class="btn-check track-output" value="full" checked>
-                        <label class="btn btn-outline-info btn-sm">Intro+Song</label>
-                        <input type="radio" class="btn-check track-output" value="intro">
-                        <label class="btn btn-outline-info btn-sm">Intro Only</label>
-                    </div>
-                </div>
-                <div class="col-md-2">
                     <label class="small">Genre</label>
                     <select class="form-select form-select-sm bg-dark text-light border-secondary track-genre">
                         <option value="">Auto</option>
@@ -176,40 +175,68 @@
                         <option>Vallenato</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="small">Transition</label>
-                    <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition" title="Effect used to blend the intro into the original song">
-                        <option value="crossfade" selected>Crossfade (default)</option>
-                        <option value="none">No effect (hard cut)</option>
-                        <option value="lowpass-sweep">Low-pass filter open</option>
-                        <option value="highpass-sweep">High-pass filter up</option>
-                        <option value="riser-noise">White-noise riser</option>
-                        <option value="downlifter">Reverse / down-lifter</option>
-                        <option value="echo-tail">Tape echo tail</option>
-                        <option value="volume-fade">Volume fade</option>
-                        <option value="slam-cut">Slam cut on downbeat</option>
-                    </select>
-                    <div class="mt-1">
-                        <label class="small" style="color:#666;">Length (bars)</label>
-                        <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition-bars">
-                            <option value="1">1</option>
-                            <option value="2" selected>2</option>
-                            <option value="4">4</option>
-                            <option value="8">8</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <label class="small">Song Starts</label>
-                    <select class="form-select form-select-sm bg-dark text-light border-secondary track-song-mode">
-                        <option value="start">From beginning</option>
-                        <option value="pick">Pick on waveform</option>
-                    </select>
-                    <div class="small mt-1 track-song-start-info d-none" style="color:#ff9800;"></div>
+                <div class="col-md-6 text-end">
+                    <button class="mx-btn btn-sm btn-generate">Generate</button>
                 </div>
             </div>
-            <div class="text-end mt-2">
-                <button class="mx-btn btn-sm btn-generate">Generate</button>
+
+            <!-- Advanced (collapsible) -->
+            <div class="mx-expander">
+                <div class="mx-expander-header" data-toggle="advanced">
+                    <span class="chev">&#9656;</span>
+                    <span>Advanced</span>
+                </div>
+                <div class="mx-expander-body">
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <label class="small">Loop</label>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input track-loop" type="checkbox">
+                                <label class="form-check-label small">Loop</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small">Output</label>
+                            <div class="mx-option-group">
+                                <input type="radio" class="btn-check track-output" value="full" checked>
+                                <label class="btn btn-outline-info btn-sm">Intro+Song</label>
+                                <input type="radio" class="btn-check track-output" value="intro">
+                                <label class="btn btn-outline-info btn-sm">Intro Only</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small">Transition</label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition" title="Effect used to blend the intro into the original song">
+                                <option value="crossfade" selected>Crossfade (default)</option>
+                                <option value="none">No effect (hard cut)</option>
+                                <option value="lowpass-sweep">Low-pass filter open</option>
+                                <option value="highpass-sweep">High-pass filter up</option>
+                                <option value="riser-noise">White-noise riser</option>
+                                <option value="downlifter">Reverse / down-lifter</option>
+                                <option value="echo-tail">Tape echo tail</option>
+                                <option value="volume-fade">Volume fade</option>
+                                <option value="slam-cut">Slam cut on downbeat</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="small">Length (bars)</label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary track-transition-bars">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="small">Song Starts</label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary track-song-mode">
+                                <option value="start">From beginning</option>
+                                <option value="pick">Pick on waveform</option>
+                            </select>
+                            <div class="small mt-1 track-song-start-info d-none" style="color:#ff9800;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -227,14 +254,30 @@
 
         <!-- Result -->
         <div class="track-result d-none mt-3">
-            <label class="small">Preview Result</label>
+            <div class="d-flex align-items-center mb-2" style="gap:var(--space-3);">
+                <label class="small mb-0">Preview Result</label>
+                <div class="mx-ab-toggle ms-auto" role="group" aria-label="Compare original and generated">
+                    <button type="button" class="mx-ab-btn track-ab-a active" data-src="original" title="Play original track">A &middot; Original</button>
+                    <button type="button" class="mx-ab-btn track-ab-b"           data-src="result"   title="Play generated intro + song">B &middot; Generated</button>
+                </div>
+            </div>
+            <div class="track-result-wave-wrap" style="position:relative;height:60px;background:var(--bg-inset);border-radius:var(--radius-md);overflow:hidden;margin-bottom:var(--space-2);">
+                <canvas class="track-result-wave" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+                <div class="track-result-playhead" style="position:absolute;top:0;bottom:0;width:1px;left:0;background:#fff;opacity:0;pointer-events:none;"></div>
+            </div>
             <audio controls class="mx-audio-player track-result-player"></audio>
             <div class="text-end mt-2">
-                <a href="#" class="mx-btn-outline btn-sm track-download" download>Download</a>
+                <a href="#" class="mx-btn-outline btn-sm track-download" download>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download
+                </a>
             </div>
         </div>
     </div>
 </template>
+
+<!-- Toast container (rendered once, used by toast() helper) -->
+<div id="mx-toast-stack" aria-live="polite" aria-atomic="true"></div>
 
 @section Scripts {
 <script>
@@ -246,6 +289,107 @@
     // --- Unique IDs for radio buttons ---
     let idCounter = 0;
     function uid() { return `r${++idCounter}`; }
+
+    // --- Toast notifications --------------------------------------------------------
+    // Non-blocking, auto-dismissing toasts (replaces alert()).
+    //   toast('Saved');                      // info
+    //   toast('Done!', 'success');
+    //   toast('Pick a stem first', 'warn');
+    //   toast('Upload failed', 'error', 6000);
+    function toast(message, kind = 'info', durationMs = 3500) {
+        const stack = document.getElementById('mx-toast-stack');
+        if (!stack) { console.log(`[${kind}] ${message}`); return; }
+        const el = document.createElement('div');
+        el.className = `mx-toast ${kind}`;
+        el.textContent = message;
+        stack.appendChild(el);
+        // Force a reflow so the entrance transition runs.
+        requestAnimationFrame(() => el.classList.add('show'));
+        const dismiss = () => {
+            el.classList.remove('show');
+            setTimeout(() => el.remove(), 220);
+        };
+        el.addEventListener('click', dismiss);
+        setTimeout(dismiss, durationMs);
+    }
+    // --------------------------------------------------------------------------------
+
+    // --- Persistent user preferences -------------------------------------------------
+    // Remembers Bars / Genre / Transition / Length / Loop / Output between sessions
+    // so a returning user doesn't have to reconfigure every track.
+    const PREFS_KEY = 'mixready.prefs.v1';
+    const DEFAULT_PREFS = {
+        bars: '8',
+        loop: false,
+        output: 'full',
+        genre: '',
+        transition: 'crossfade',
+        transitionBars: '2',
+        songMode: 'start',
+        stemsOpen: true,      // is the Stems expander open by default?
+        advancedOpen: false,  // is the Advanced expander open by default?
+    };
+    function loadPrefs() {
+        try {
+            const raw = localStorage.getItem(PREFS_KEY);
+            if (!raw) return { ...DEFAULT_PREFS };
+            return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
+        } catch { return { ...DEFAULT_PREFS }; }
+    }
+    function savePrefs(p) {
+        try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch {}
+    }
+    const userPrefs = loadPrefs();
+
+    // Apply remembered preferences to a freshly-cloned card, and persist any changes
+    // the user makes back to localStorage.
+    function applyPrefsToCard(card) {
+        // Bars (radio)
+        card.querySelectorAll('.track-bars').forEach(r => {
+            r.checked = (r.value === userPrefs.bars);
+        });
+        // Output (radio)
+        card.querySelectorAll('.track-output').forEach(r => {
+            r.checked = (r.value === userPrefs.output);
+        });
+        // Loop / Genre / Transition / Length / Song mode
+        const loop = card.querySelector('.track-loop');           if (loop) loop.checked = !!userPrefs.loop;
+        const genre = card.querySelector('.track-genre');         if (genre) genre.value = userPrefs.genre || '';
+        const tr = card.querySelector('.track-transition');       if (tr) tr.value = userPrefs.transition;
+        const trb = card.querySelector('.track-transition-bars'); if (trb) trb.value = userPrefs.transitionBars;
+        const sm = card.querySelector('.track-song-mode');        if (sm) sm.value = userPrefs.songMode;
+
+        const persist = () => {
+            userPrefs.bars           = card.querySelector('.track-bars:checked')?.value || userPrefs.bars;
+            userPrefs.output         = card.querySelector('.track-output:checked')?.value || userPrefs.output;
+            userPrefs.loop           = !!card.querySelector('.track-loop')?.checked;
+            userPrefs.genre          = card.querySelector('.track-genre')?.value || '';
+            userPrefs.transition     = card.querySelector('.track-transition')?.value || userPrefs.transition;
+            userPrefs.transitionBars = card.querySelector('.track-transition-bars')?.value || userPrefs.transitionBars;
+            userPrefs.songMode       = card.querySelector('.track-song-mode')?.value || userPrefs.songMode;
+            savePrefs(userPrefs);
+        };
+        card.querySelectorAll(
+            '.track-bars, .track-loop, .track-output, .track-genre, ' +
+            '.track-transition, .track-transition-bars, .track-song-mode'
+        ).forEach(el => el.addEventListener('change', persist));
+    }
+    // --------------------------------------------------------------------------------
+
+    // --- Filename rendering ---
+    // Escape HTML, drop the extension from the visible label, and mute the common
+    // separator characters (x, X, *, |, -, _) so multi-artist titles read cleanly.
+    function formatTrackName(raw) {
+        const noExt = (raw || '').replace(/\.[^.]+$/, '');
+        const escaped = noExt
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        return escaped.replace(
+            /(\s)([x×X*|\-_]+)(\s)/g,
+            (_m, a, sep, b) => `${a}<span class="mx-filename-sep">${sep}</span>${b}`
+        );
+    }
 
     // --- Upload ---
     const dropZone = document.getElementById('drop-zone');
@@ -290,7 +434,11 @@
         const card = template.content.cloneNode(true).querySelector('.track-card');
         card.dataset.idx = idx;
         card.querySelector('.track-number').textContent = `#${tracks.length}`;
-        card.querySelector('.track-name').textContent = file.name;
+        // Render filename with separators muted so messy multi-artist names read cleanly.
+        // The full original name lives on the title attribute for hover tooltip.
+        const nameEl = card.querySelector('.track-name');
+        nameEl.title = file.name;
+        nameEl.innerHTML = formatTrackName(file.name);
 
         // Assign unique IDs to radio buttons
         card.querySelectorAll('.track-bars').forEach((inp, i) => {
@@ -312,6 +460,29 @@
         // Wire up remove button
         card.querySelector('.btn-remove').addEventListener('click', () => removeTrack(idx, card));
 
+        // Wire up collapsible sections (Stems, Advanced)
+        card.querySelectorAll('.mx-expander-header').forEach(h => {
+            h.addEventListener('click', () => {
+                const exp = h.parentElement;
+                exp.classList.toggle('open');
+                // Remember which sections the user prefers expanded.
+                const isStems    = exp.classList.contains('track-stems-area');
+                const isAdvanced = !isStems;
+                if (isStems)    userPrefs.stemsOpen    = exp.classList.contains('open');
+                if (isAdvanced) userPrefs.advancedOpen = exp.classList.contains('open');
+                savePrefs(userPrefs);
+            });
+        });
+        // Apply saved expander defaults. Stems expander only auto-opens on the
+        // first track so multi-track sessions stay compact.
+        const stemsExp    = card.querySelector('.track-stems-area.mx-expander');
+        const advancedExp = card.querySelector('.track-config .mx-expander');
+        if (stemsExp    && userPrefs.stemsOpen    && tracks.length === 1) stemsExp.classList.add('open');
+        if (advancedExp && userPrefs.advancedOpen) advancedExp.classList.add('open');
+
+        // Apply remembered user preferences and persist on any change.
+        applyPrefsToCard(card);
+
         document.getElementById('track-list').appendChild(card);
 
         // Upload
@@ -330,11 +501,13 @@
             if (!res.ok) {
                 statusBox.className = 'mx-status failed';
                 statusBox.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+                toast('Upload failed: ' + (data.error || 'Unknown error'), 'error', 6000);
                 return;
             }
             entry.trackId = data.trackId;
             statusBox.className = 'mx-status completed';
             statusBox.textContent = 'Uploaded -- configure and generate!';
+            toast(`Uploaded ${file.name}`, 'success');
             card.querySelector('.btn-generate').disabled = false;
 
             // Show original preview
@@ -374,6 +547,20 @@
             entry.region = {};
             entry.songStart = null;
             entry.clickMode = 'intro'; // 'intro' or 'song'
+
+            // Live playhead readout below the waveform: "1:23.45 - Bar 17 - 124 BPM"
+            const readout = card.querySelector('.track-playhead-readout');
+            const updateReadout = () => {
+                if (!readout) return;
+                const t = entry.ws.getCurrentTime?.() || 0;
+                const bar = findBarNumber(t, entry.bars);
+                const bpm = card.querySelector('.track-detected-bpm')?.textContent || '';
+                const bpmStr = (bpm && bpm !== '--' && bpm !== '?') ? ` \u00B7 ${bpm} BPM` : '';
+                readout.textContent = `${formatTimePrecise(t)} \u00B7 Bar ${bar || '\u2014'}${bpmStr}`;
+            };
+            entry.ws.on('audioprocess', updateReadout);
+            entry.ws.on('seeking',      updateReadout);
+            entry.ws.on('ready',        updateReadout);
 
             // Wire intro preview button (plays selected stems together over the region)
             setupIntroPreview(entry, card);
@@ -469,6 +656,7 @@
         } catch (err) {
             statusBox.className = 'mx-status failed';
             statusBox.textContent = 'Upload error: ' + err.message;
+            toast('Upload error: ' + err.message, 'error', 6000);
         }
     }
 
@@ -622,6 +810,14 @@
         const m = Math.floor(sec / 60);
         const s = (sec % 60).toFixed(1);
         return m > 0 ? `${m}:${s.padStart(4,'0')}` : `${s}s`;
+    }
+
+    // Like formatTime but always M:SS.ss with two decimals (used for the live playhead readout).
+    function formatTimePrecise(sec) {
+        if (!isFinite(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = (sec % 60).toFixed(2).padStart(5, '0'); // "06.18"
+        return `${m}:${s}`;
     }
 
     // --- Serato-style 3-band coloured waveform ----------------------------------------
@@ -866,8 +1062,10 @@
         const area = card.querySelector('.track-stems-area');
         area.classList.remove('d-none');
         const status = card.querySelector('.track-stems-status');
-        status.style.color = '#ffc107';
+        const countChip = card.querySelector('.track-stems-count');
+        status.style.color = 'var(--warn)';
         status.textContent = 'AI is separating stems...';
+        if (countChip) countChip.textContent = 'separating...';
         card.querySelector('.track-stems').classList.add('d-none');
         entry.stemWs = {};
 
@@ -878,18 +1076,20 @@
                 const data = await res.json();
                 if (data.ready) {
                     clearInterval(poll);
-                    status.style.color = '#4caf50';
-                    status.textContent = 'All stems detected -- select which to use for intro';
+                    status.style.color = 'var(--ok)';
+                    status.textContent = 'Stems ready -- pick which to use for the intro.';
+                    if (countChip) countChip.textContent = '4 detected';
                     card.querySelector('.track-stems').classList.remove('d-none');
                     initIntroStemWaveforms(entry, card);
                 } else if (data.error) {
                     clearInterval(poll);
-                    status.style.color = '#f44336';
+                    status.style.color = 'var(--danger)';
                     status.textContent = 'Error: ' + data.error;
+                    if (countChip) countChip.textContent = 'failed';
                 }
             }, 3000);
         } catch (err) {
-            status.style.color = '#f44336';
+            status.style.color = 'var(--danger)';
             status.textContent = err.message;
         }
     }
@@ -970,11 +1170,11 @@
             const s = entry.region?.start;
             const e = entry.region?.end;
             if (s == null || e == null || e <= s) {
-                alert('Select an intro region first: click on the main waveform for START, Shift+Click for END.');
+                toast('Select an intro region first: click on the main waveform for START, Shift+Click for END.', 'warn');
                 return;
             }
             if (!entry.stemWs || Object.keys(entry.stemWs).length === 0) {
-                alert('Stems are still being separated. Please wait until they appear.');
+                toast('Stems are still being separated. Please wait until they appear.', 'warn');
                 return;
             }
             // Pause any solo-stem playback
@@ -984,7 +1184,7 @@
             const selected = [];
             card.querySelectorAll('.track-stem-check:checked').forEach(cb => selected.push(cb.dataset.stem));
             if (selected.length === 0) {
-                alert('Select at least one stem checkbox to preview the intro.');
+                toast('Select at least one stem checkbox to preview the intro.', 'warn');
                 return;
             }
             const loop = card.querySelector('.track-intro-preview-loop')?.checked;
@@ -1144,12 +1344,21 @@
                 card.querySelector('.track-result-info').classList.remove('d-none');
 
                 const downloadUrl = `${API}/${entry.trackId}/download`;
-                card.querySelector('.track-result-player').src = downloadUrl;
+                const originalUrl = `${API}/${entry.trackId}/original`;
+                const player = card.querySelector('.track-result-player');
+                player.src = downloadUrl;
                 card.querySelector('.track-download').href = downloadUrl;
                 card.querySelector('.track-result').classList.remove('d-none');
 
+                // Render Serato-style 3-band canvas of the *generated* result
+                renderResultPreview(card, downloadUrl);
+
+                // Wire A/B compare so users can flip between original and generated mix
+                setupAbCompare(card, originalUrl, downloadUrl);
+
                 btn.disabled = false;
                 btn.textContent = 'Re-generate';
+                toast('Intro generated successfully', 'success');
 
             } else if (data.status === 'Failed') {
                 clearInterval(entry.pollTimer);
@@ -1157,6 +1366,7 @@
                 statusBox.textContent = (data.message || 'Failed');
                 btn.disabled = false;
                 btn.textContent = 'Generate';
+                toast('Generation failed: ' + (data.message || 'Unknown error'), 'error', 6000);
 
             } else if (data.status === 'Queued') {
                 statusBox.className = 'mx-status queued';
@@ -1167,6 +1377,76 @@
                 statusBox.textContent = (data.message || 'Processing...');
             }
         } catch (err) { }
+    }
+
+    // --- Result preview waveform (Serato-style 3-band canvas for the generated mix) ---
+    async function renderResultPreview(card, url) {
+        const canvas = card.querySelector('.track-result-wave');
+        if (!canvas || !url) return;
+        try {
+            const res = await fetch(url);
+            const arrayBuf = await res.arrayBuffer();
+            const AC = window.AudioContext || window.webkitAudioContext;
+            const ac = new AC();
+            const buffer = await ac.decodeAudioData(arrayBuf);
+            await renderSeratoWaveform(canvas, buffer);
+            try { ac.close(); } catch {}
+        } catch (err) {
+            console.warn('result preview render failed:', err);
+        }
+    }
+
+    // --- A/B compare: swap a single <audio> element between original and result ---
+    function setupAbCompare(card, originalUrl, resultUrl) {
+        const player = card.querySelector('.track-result-player');
+        const btnA = card.querySelector('.track-ab-a');
+        const btnB = card.querySelector('.track-ab-b');
+        if (!player || !btnA || !btnB) return;
+
+        // Start in B (Generated) so the result is what plays by default.
+        let mode = 'result';
+        btnA.classList.remove('active');
+        btnB.classList.add('active');
+        player.src = resultUrl;
+
+        const switchTo = (which) => {
+            if (which === mode) return;
+            const wasPlaying = !player.paused;
+            const at = player.currentTime || 0;
+            mode = which;
+            player.src = (which === 'original') ? originalUrl : resultUrl;
+            btnA.classList.toggle('active', which === 'original');
+            btnB.classList.toggle('active', which === 'result');
+            // Try to resume at roughly the same time so the comparison is fair.
+            const resume = () => {
+                try { player.currentTime = Math.min(at, player.duration - 0.05 || at); } catch {}
+                if (wasPlaying) player.play().catch(() => {});
+                player.removeEventListener('loadedmetadata', resume);
+            };
+            player.addEventListener('loadedmetadata', resume);
+        };
+        btnA.onclick = () => switchTo('original');
+        btnB.onclick = () => switchTo('result');
+
+        // Drive the white playhead overlay on the result canvas from the <audio> element.
+        const wrap = card.querySelector('.track-result-wave-wrap');
+        const head = card.querySelector('.track-result-playhead');
+        const update = () => {
+            if (!head || !wrap || !player.duration) return;
+            const w = wrap.clientWidth || 1;
+            head.style.left = `${(player.currentTime / player.duration) * w}px`;
+            head.style.opacity = player.paused ? '0.4' : '1';
+        };
+        player.addEventListener('timeupdate', update);
+        player.addEventListener('seeking',    update);
+        player.addEventListener('play',       update);
+        player.addEventListener('pause',      update);
+        wrap?.addEventListener('click', e => {
+            if (!player.duration) return;
+            const rect = wrap.getBoundingClientRect();
+            const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+            player.currentTime = pct * player.duration;
+        });
     }
 </script>
 }
