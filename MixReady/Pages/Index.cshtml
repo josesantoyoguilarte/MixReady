@@ -50,8 +50,23 @@
         <!-- Waveform + BPM/Key -->
         <div class="track-waveform-area d-none mb-3">
             <div class="track-waveform" style="height:60px;background:#111;border-radius:6px;position:relative;cursor:pointer;margin-top:14px;"></div>
-            <div class="track-waveform-hint" style="font-size:0.6rem;color:#555;text-align:right;">Click on waveform to set intro extraction start</div>
-            <div class="track-region-info small mt-1" style="color:#00e5ff;"></div>
+            <div class="track-waveform-hint" style="font-size:0.6rem;color:#555;text-align:right;">Click on waveform to set intro START &mdash; Shift+Click to set intro END</div>
+            <div class="track-region-info small mt-1" style="color:#ff3b30;"></div>
+
+            <!-- Intro selection preview (selected stems played together) -->
+            <div class="track-intro-preview d-none mt-2 p-2" style="background:#111;border:1px solid #ff3b3066;border-radius:6px;">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn-preview-intro" style="width:32px;height:32px;border-radius:50%;border:2px solid #ff3b30;background:transparent;color:#ff3b30;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#9654;</button>
+                    <span style="font-size:0.7rem;color:#bbb;text-transform:uppercase;letter-spacing:0.5px;">Preview Intro Selection</span>
+                    <span class="track-intro-preview-info" style="font-size:0.7rem;color:#ff3b30;margin-left:auto;"></span>
+                    <label class="form-check-label small ms-2" style="color:#888;">
+                        <input type="checkbox" class="form-check-input track-intro-preview-loop" checked style="margin-right:4px;accent-color:#ff3b30;">
+                        Loop
+                    </label>
+                </div>
+                <div class="small mt-1" style="color:#666;font-size:0.6rem;">Plays the selected stems (drums / bass / melody / vocals) together between your intro start and end.</div>
+            </div>
+
             <div class="row text-center mt-2 g-2">
                 <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">BPM</span><span class="track-detected-bpm" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
                 <div class="col-4"><div style="background:#111;border-radius:8px;padding:6px;border:1px solid #2a2a4a;"><span style="display:block;font-size:0.55rem;color:#666;text-transform:uppercase;">KEY</span><span class="track-detected-key" style="display:block;font-size:1.3rem;font-weight:800;color:#00e5ff;">--</span></div></div>
@@ -316,6 +331,13 @@
             entry.songStart = null;
             entry.clickMode = 'intro'; // 'intro' or 'song'
 
+            // Wire intro preview button (plays selected stems together over the region)
+            setupIntroPreview(entry, card);
+
+            // Track shift key state for setting intro end via Shift+Click
+            entry._shiftHeld = false;
+            wfContainer.addEventListener('mousedown', e => { entry._shiftHeld = e.shiftKey; }, true);
+
             // Waveform click -- use WaveSurfer's 'click' event for accurate time
             entry.ws.on('click', (relativeX) => {
                 if (!entry.ws.getDuration()) return;
@@ -334,13 +356,28 @@
                     wfContainer.style.cursor = 'pointer';
                     wfContainer.style.outline = '';
                     const hint = card.querySelector('.track-waveform-hint');
-                    hint.textContent = 'Click on waveform to set intro extraction start';
+                    hint.textContent = 'Click on waveform to set intro START -- Shift+Click to set intro END';
                     hint.style.color = '#555';
                 } else {
-                    entry.region.start = time;
-                    const barsCount = parseInt(card.querySelector('.track-bars:checked')?.value || '8');
-                    entry.region.end = calcRegionEnd(time, barsCount, entry.bars, entry.ws.getDuration());
-                    drawAllRegions(entry, card);
+                    // Use the exact click position (no bar snapping) so the user can pick any moment
+                    if (entry._shiftHeld && entry.region.start != null) {
+                        // Shift+Click sets the END of the intro region
+                        if (time > entry.region.start) {
+                            entry.region.end = time;
+                        } else {
+                            // If user clicked before current start, swap: this becomes new start
+                            entry.region.end = entry.region.start;
+                            entry.region.start = time;
+                        }
+                        drawAllRegions(entry, card);
+                    } else {
+                        // Plain click sets the START; default end from bar count
+                        entry.region.start = time;
+                        const barsCount = parseInt(card.querySelector('.track-bars:checked')?.value || '8');
+                        entry.region.end = calcRegionEnd(time, barsCount, entry.bars, entry.ws.getDuration());
+                        drawAllRegions(entry, card);
+                    }
+                    entry._shiftHeld = false;
                 }
             });
 
@@ -364,7 +401,7 @@
                     info.classList.add('d-none');
                     wfContainer.style.cursor = 'pointer';
                     wfContainer.style.outline = '';
-                    hint.textContent = 'Click on waveform to set intro extraction start';
+                    hint.textContent = 'Click on waveform to set intro START -- Shift+Click to set intro END';
                     hint.style.color = '#555';
                     drawAllRegions(entry, card);
                 }
@@ -442,7 +479,7 @@
             if (stemWf) stemWf.querySelectorAll('.region-overlay,.song-start-marker').forEach(r => r.remove());
         });
 
-        // Draw intro region (cyan)
+        // Draw intro region (red)
         const s = Math.max(0, entry.region.start || 0);
         const e = entry.region.end || 0;
         if (e > s) {
@@ -455,6 +492,15 @@
                 infoText += ` | Song starts: bar ${songBar || '?'} (${entry.songStart.toFixed(1)}s)`;
             }
             card.querySelector('.track-region-info').textContent = infoText;
+
+            // Reveal & update intro preview panel
+            const previewPanel = card.querySelector('.track-intro-preview');
+            if (previewPanel) {
+                previewPanel.classList.remove('d-none');
+                const dl = (e - s);
+                card.querySelector('.track-intro-preview-info').textContent =
+                    `${s.toFixed(2)}s -- ${e.toFixed(2)}s  (${dl.toFixed(2)}s)`;
+            }
 
             drawRegionOverlay(wfContainer, s, e, dur, true);
             ['drums', 'bass', 'other', 'vocals'].forEach(stem => {
@@ -503,17 +549,17 @@
         const widthPct = ((end - start) / duration) * 100;
         const ov = document.createElement('div');
         ov.className = 'region-overlay';
-        ov.style.cssText = `position:absolute;top:0;height:100%;background:rgba(0,229,255,0.15);border-left:2px solid #00e5ff;border-right:2px solid #00e5ff;pointer-events:none;z-index:3;left:${leftPct}%;width:${widthPct}%;`;
+        ov.style.cssText = `position:absolute;top:0;height:100%;background:rgba(255,59,48,0.18);border-left:3px solid #ff3b30;border-right:3px solid #ff3b30;pointer-events:none;z-index:3;left:${leftPct}%;width:${widthPct}%;box-shadow:0 0 6px rgba(255,59,48,0.6) inset;`;
 
         // Start time label (left edge)
         const startLbl = document.createElement('span');
-        startLbl.style.cssText = 'position:absolute;left:3px;bottom:2px;font-size:8px;font-weight:bold;color:#00e5ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        startLbl.style.cssText = 'position:absolute;left:3px;bottom:2px;font-size:8px;font-weight:bold;color:#ff3b30;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
         startLbl.textContent = formatTime(start);
         ov.appendChild(startLbl);
 
         // End time label (right edge)
         const endLbl = document.createElement('span');
-        endLbl.style.cssText = 'position:absolute;right:3px;bottom:2px;font-size:8px;font-weight:bold;color:#00e5ff;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
+        endLbl.style.cssText = 'position:absolute;right:3px;bottom:2px;font-size:8px;font-weight:bold;color:#ff3b30;pointer-events:none;white-space:nowrap;text-shadow:0 0 3px #000;';
         endLbl.textContent = formatTime(end);
         ov.appendChild(endLbl);
 
@@ -673,10 +719,107 @@
         });
     }
 
+    // --- Intro preview: play selected stems together over [region.start, region.end] ---
+    function setupIntroPreview(entry, card) {
+        const btn = card.querySelector('.btn-preview-intro');
+        if (!btn || btn.dataset.wired === '1') return;
+        btn.dataset.wired = '1';
+        entry._introPreviewPlaying = false;
+
+        const stopPreview = () => {
+            entry._introPreviewPlaying = false;
+            if (entry._introPreviewTimer) { clearInterval(entry._introPreviewTimer); entry._introPreviewTimer = null; }
+            if (entry.stemWs) {
+                ['drums','bass','other','vocals'].forEach(s => {
+                    const w = entry.stemWs[s];
+                    if (w && w.isPlaying()) w.pause();
+                });
+            }
+            btn.innerHTML = '&#9654;';
+            btn.classList.remove('playing');
+        };
+
+        btn.addEventListener('click', () => {
+            if (entry._introPreviewPlaying) { stopPreview(); return; }
+
+            const s = entry.region?.start;
+            const e = entry.region?.end;
+            if (s == null || e == null || e <= s) {
+                alert('Select an intro region first: click on the main waveform for START, Shift+Click for END.');
+                return;
+            }
+            if (!entry.stemWs || Object.keys(entry.stemWs).length === 0) {
+                alert('Stems are still being separated. Please wait until they appear.');
+                return;
+            }
+            // Pause any solo-stem playback
+            card.querySelectorAll('.stem-play-btn').forEach(b => { b.classList.remove('playing'); b.innerHTML = '&#9654;'; });
+
+            // Selected stems (from the checkboxes)
+            const selected = [];
+            card.querySelectorAll('.track-stem-check:checked').forEach(cb => selected.push(cb.dataset.stem));
+            if (selected.length === 0) {
+                alert('Select at least one stem checkbox to preview the intro.');
+                return;
+            }
+            const loop = card.querySelector('.track-intro-preview-loop')?.checked;
+
+            // Seek every selected stem to the region start and play together
+            const startFraction = (ws) => {
+                const d = ws.getDuration();
+                return d > 0 ? Math.min(0.999, s / d) : 0;
+            };
+            selected.forEach(stem => {
+                const ws = entry.stemWs[stem];
+                if (!ws) return;
+                try { ws.seekTo(startFraction(ws)); ws.play(); } catch {}
+            });
+            entry._introPreviewPlaying = true;
+            btn.innerHTML = '&#9632;';
+            btn.classList.add('playing');
+
+            // Watch for the end of the region; loop or stop
+            entry._introPreviewTimer = setInterval(() => {
+                const first = entry.stemWs[selected[0]];
+                if (!first) { stopPreview(); return; }
+                const t = first.getCurrentTime();
+                if (t >= e) {
+                    if (loop) {
+                        selected.forEach(stem => {
+                            const ws = entry.stemWs[stem];
+                            if (ws) { try { ws.seekTo(startFraction(ws)); ws.play(); } catch {} }
+                        });
+                    } else {
+                        stopPreview();
+                    }
+                }
+            }, 60);
+        });
+
+        // Re-sync if user toggles a stem checkbox while preview is playing
+        card.querySelectorAll('.track-stem-check').forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (!entry._introPreviewPlaying) return;
+                const stem = cb.dataset.stem;
+                const ws = entry.stemWs?.[stem];
+                if (!ws) return;
+                if (cb.checked) {
+                    const d = ws.getDuration();
+                    const first = entry.stemWs[Object.keys(entry.stemWs).find(k => entry.stemWs[k].isPlaying())];
+                    const t = first ? first.getCurrentTime() : (entry.region.start || 0);
+                    try { ws.seekTo(d > 0 ? Math.min(0.999, t / d) : 0); ws.play(); } catch {}
+                } else {
+                    try { ws.pause(); } catch {}
+                }
+            });
+        });
+    }
+
     function removeTrack(idx, card) {
         const entry = tracks.find(t => t.idx === idx);
         if (entry) {
             if (entry.pollTimer) clearInterval(entry.pollTimer);
+            if (entry._introPreviewTimer) clearInterval(entry._introPreviewTimer);
             if (entry.ws) entry.ws.destroy();
             if (entry.stemWs) Object.values(entry.stemWs).forEach(w => w.destroy());
         }
