@@ -230,7 +230,7 @@ public class TracksController : ControllerBase
         var result = GenreAnalyzer.AnalyzeWithScores(track.FilePath, bpm);
         var (keyName, _) = KeyDetector.Detect(track.FilePath);
 
-        using var reader = new NAudio.Wave.AudioFileReader(track.FilePath);
+        using var reader = new NAudio.Wave.AudioFileReader(MixReady.Helpers.AudioConverter.EnsureWav(track.FilePath));
         var format = reader.WaveFormat;
         var sampleCount = (int)(reader.Length / (format.BitsPerSample / 8));
         var samples = new float[sampleCount];

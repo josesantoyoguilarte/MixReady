@@ -441,7 +441,7 @@ public class KitchenController : ControllerBase
         if (!System.IO.File.Exists(path)) return null;
         try
         {
-            using var reader = new AudioFileReader(path);
+            using var reader = new AudioFileReader(MixReady.Helpers.AudioConverter.EnsureWav(path));
             var buf = new float[(int)(reader.Length / (reader.WaveFormat.BitsPerSample / 8))];
             int total = 0, read;
             while ((read = reader.Read(buf, total, Math.Min(8192, buf.Length - total))) > 0)
@@ -460,7 +460,20 @@ public class KitchenController : ControllerBase
 
     private static string? FindPython()
     {
-        // Docker / Linux paths first
+        // Project-local venv (resolved relative to running binary and CWD)
+        var projectVenvCandidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".venv", "bin", "python3"),
+            Path.Combine(AppContext.BaseDirectory, ".venv", "bin", "python3"),
+            Path.Combine(Directory.GetCurrentDirectory(), ".venv", "bin", "python3"),
+        };
+        foreach (var p in projectVenvCandidates)
+        {
+            var full = Path.GetFullPath(p);
+            if (System.IO.File.Exists(full)) return full;
+        }
+
+        // Docker / Linux paths
         foreach (var p in new[] { "/opt/venv/bin/python3", "/usr/bin/python3" })
             if (System.IO.File.Exists(p)) return p;
 

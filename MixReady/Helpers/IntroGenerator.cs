@@ -51,7 +51,7 @@ public static class IntroGenerator
         var crossfadeStartSeconds = analysis.RecommendedCrossfadeStart;
 
         // Step 2: Read the full track
-        using var reader = new AudioFileReader(inputPath);
+        using var reader = new AudioFileReader(AudioConverter.EnsureWav(inputPath));
         var format = reader.WaveFormat;
         var originalSamples = ReadAllSamples(reader);
 
@@ -207,7 +207,7 @@ public static class IntroGenerator
         double crossfadeStart = 0;
         try
         {
-            using var r = new AudioFileReader(inputPath);
+            using var r = new AudioFileReader(AudioConverter.EnsureWav(inputPath));
             var fmt = r.WaveFormat;
             var smp = ReadAllSamples(r);
             var ta = TrackAnalyzer.Analyze(smp, fmt.SampleRate, fmt.Channels, bpm);

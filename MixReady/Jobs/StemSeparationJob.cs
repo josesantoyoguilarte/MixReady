@@ -100,7 +100,20 @@ public class StemSeparationJob
 
     private static string? FindPython()
     {
-        // Docker / Linux paths first
+        // Project-local venv (resolved relative to the running binary and CWD)
+        var projectVenvCandidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".venv", "bin", "python3"),
+            Path.Combine(AppContext.BaseDirectory, ".venv", "bin", "python3"),
+            Path.Combine(Directory.GetCurrentDirectory(), ".venv", "bin", "python3"),
+        };
+        foreach (var p in projectVenvCandidates)
+        {
+            var full = Path.GetFullPath(p);
+            if (File.Exists(full)) return full;
+        }
+
+        // Docker / Linux paths
         foreach (var p in new[] { "/opt/venv/bin/python3", "/usr/bin/python3" })
             if (File.Exists(p)) return p;
 

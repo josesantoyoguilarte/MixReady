@@ -20,7 +20,7 @@ public static class GenreAnalyzer
 {
     public static string Analyze(string filePath, double bpm)
     {
-        using var reader = new AudioFileReader(filePath);
+        using var reader = new AudioFileReader(AudioConverter.EnsureWav(filePath));
         var sampleRate = reader.WaveFormat.SampleRate;
         var channels = reader.WaveFormat.Channels;
 
@@ -52,7 +52,7 @@ public static class GenreAnalyzer
     /// </summary>
     public static GenreAnalysisResult AnalyzeWithScores(string filePath, double bpm)
     {
-        using var reader = new AudioFileReader(filePath);
+        using var reader = new AudioFileReader(AudioConverter.EnsureWav(filePath));
         var sampleRate = reader.WaveFormat.SampleRate;
         var channels = reader.WaveFormat.Channels;
 

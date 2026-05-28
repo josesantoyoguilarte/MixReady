@@ -49,7 +49,7 @@ public static class KeyDetector
     /// </returns>
     public static (string NoteName, double BassFrequency) Detect(string filePath)
     {
-        using var reader = new AudioFileReader(filePath);
+        using var reader = new AudioFileReader(AudioConverter.EnsureWav(filePath));
         var sampleRate = reader.WaveFormat.SampleRate;
         var channels = reader.WaveFormat.Channels;
 

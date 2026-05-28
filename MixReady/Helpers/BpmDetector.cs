@@ -50,7 +50,7 @@ public static class BpmDetector
 
     public static double Detect(string filePath, string? genre)
     {
-        using var reader = new AudioFileReader(filePath);
+        using var reader = new AudioFileReader(AudioConverter.EnsureWav(filePath));
         var mono = reader.ToMono();
         var sampleRate = mono.WaveFormat.SampleRate;
 
